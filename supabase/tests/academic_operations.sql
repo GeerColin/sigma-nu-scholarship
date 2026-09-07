@@ -1,4 +1,6 @@
 begin;
+set local role postgres;
+set local search_path = public, extensions;
 select plan(13);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)

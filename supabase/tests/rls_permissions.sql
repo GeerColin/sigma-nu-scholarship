@@ -1,4 +1,6 @@
 begin;
+set local role postgres;
+set local search_path = public, extensions;
 select plan(10);
 
 select has_table('public', 'members', 'members table exists');
