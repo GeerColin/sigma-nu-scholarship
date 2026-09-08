@@ -1,23 +1,58 @@
 import Link from "next/link";
-import { AppShell } from "@/components/app-shell";
-import { DemoBanner } from "@/components/demo-banner";
+import { notFound } from "next/navigation";
+import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { getMemberDetail } from "@/features/members/queries";
+
+function formatGrade(value: unknown) {
+  if (value === null || value === undefined) return "No grade reported";
+  if (typeof value === "number") return `${value}%`;
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
+function formatHours(minutes: number) {
+  return (minutes / 60).toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+const gradingLabels: Record<string, string> = {
+  percentage: "Percentage",
+  letter: "Letter Grade",
+  pass_fail: "Pass / Fail",
+  custom: "Custom / Other",
+};
 
 export default async function MemberProfilePage({
   params,
 }: {
   params: Promise<{ memberId: string }>;
 }) {
-  await params;
+  const { memberId } = await params;
+  const result = await getMemberDetail(memberId);
+  if (!result) notFound();
+  const { member, period } = result;
+  const latestSubmission = member.submissions[0] ?? null;
+  const gpaTitle = period
+    ? `Estimated ${period.semester.name} GPA`
+    : "Estimated semester GPA";
+
   return (
-    <AppShell>
-      <DemoBanner />
+    <ChairAppShell>
       <PageHeading
         eyebrow="Member profile"
-        title="Cameron Lee"
-        description="Active member · Google account linked"
+        title={member.name}
+        description={`${member.status[0]?.toUpperCase()}${member.status.slice(1)} member · ${member.connectedEmail ? "Google account connected" : "No Google account connected"}`}
         action={
           <Link
             href="/members"
@@ -27,46 +62,88 @@ export default async function MemberProfilePage({
           </Link>
         }
       />
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        {member.roles.map((role) => (
+          <Badge key={role}>{role.replaceAll("_", " ")}</Badge>
+        ))}
+        {member.connectedEmail && (
+          <Badge tone="success">{member.connectedEmail}</Badge>
+        )}
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-3">
         <Card>
           <CardContent>
             <p className="text-sm font-semibold text-[var(--muted)]">
-              Estimated Fall 2026 GPA
-            </p>
-            <p className="mt-2 text-4xl font-bold text-[var(--navy)]">2.84</p>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Based on 4 of 5 active courses. This estimate may differ from the
-              official university GPA.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-sm font-semibold text-[var(--muted)]">
-              Week 5 study hours
+              {gpaTitle}
             </p>
             <p className="mt-2 text-4xl font-bold text-[var(--navy)]">
-              1 <span className="text-xl text-[var(--muted)]">of 2</span>
+              {latestSubmission?.estimatedGpa?.toFixed(2) ?? "—"}
             </p>
-            <Badge tone="warning" className="mt-3">
-              1 hour remaining
-            </Badge>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              {latestSubmission
+                ? `Based on ${latestSubmission.includedCourseCount} of ${latestSubmission.activeCourseCount} active courses.`
+                : "No grade submission is available for this semester."}{" "}
+              This estimate may differ from the official university GPA.
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <p className="text-sm font-semibold text-[var(--muted)]">
-              Academic review
+              Current-week study hours
             </p>
-            <p className="mt-2 text-xl font-bold text-[var(--navy)]">
-              Grade change detected
+            {member.studyHours ? (
+              <>
+                <p className="mt-2 text-4xl font-bold text-[var(--navy)]">
+                  {formatHours(member.studyHours.completedMinutes)}{" "}
+                  <span className="text-xl text-[var(--muted)]">
+                    of {formatHours(member.studyHours.requiredMinutes)}
+                  </span>
+                </p>
+                <Badge
+                  tone={
+                    member.studyHours.remainingMinutes === 0
+                      ? "success"
+                      : "warning"
+                  }
+                  className="mt-3"
+                >
+                  {member.studyHours.remainingMinutes === 0
+                    ? "Complete"
+                    : `${formatHours(member.studyHours.remainingMinutes)} hours remaining`}
+                </Badge>
+                {member.studyHours.overridden && (
+                  <p className="mt-2 text-sm text-[var(--muted)]">
+                    Overridden: {member.studyHours.overrideReason}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 text-[var(--muted)]">
+                No study-hour assignment yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm font-semibold text-[var(--muted)]">
+              Academic alerts
+            </p>
+            <p className="mt-2 text-4xl font-bold text-[var(--navy)]">
+              {member.alerts.filter((alert) => !alert.acknowledgedAt).length}
             </p>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              One course changed by more than the configured threshold.
+              {member.alerts.length
+                ? `${member.alerts.length} total alert records.`
+                : "No academic alerts."}
             </p>
           </CardContent>
         </Card>
       </div>
+
       <Card className="mt-5">
         <CardHeader>
           <h2 className="text-xl font-bold text-[var(--navy)]">
@@ -75,27 +152,144 @@ export default async function MemberProfilePage({
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              ["Calculus II", "81.5%", "4 credits"],
-              ["Chemistry", "B", "4 credits"],
-              ["Great Books", "Pass", "3 credits · excluded from estimate"],
-              [
-                "Engineering Seminar",
-                "Satisfactory",
-                "1 credit · excluded from estimate",
-              ],
-            ].map(([name, grade, meta]) => (
-              <div key={name} className="rounded-xl border p-4">
+            {member.courses.map((course) => (
+              <div key={course.id} className="rounded-xl border p-4">
                 <div className="flex justify-between gap-3">
-                  <p className="font-bold text-[var(--navy)]">{name}</p>
-                  <p className="font-bold">{grade}</p>
+                  <p className="font-bold text-[var(--navy)]">{course.name}</p>
+                  <p className="font-bold">{formatGrade(course.latestValue)}</p>
                 </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">{meta}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {course.creditHours} credit
+                  {course.creditHours === 1 ? "" : "s"} ·{" "}
+                  {gradingLabels[course.gradingType] ?? course.gradingType}
+                  {course.archived ? " · Archived" : ""}
+                </p>
               </div>
             ))}
           </div>
+          {!member.courses.length && (
+            <p className="py-5 text-center text-[var(--muted)]">
+              No active courses.
+            </p>
+          )}
         </CardContent>
       </Card>
-    </AppShell>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-bold text-[var(--navy)]">
+              Submission history and GPA trend
+            </h2>
+          </CardHeader>
+          <div className="divide-y">
+            {member.submissions.map((submission) => (
+              <article key={submission.id} className="p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-[var(--navy)]">
+                      {submission.weekLabel}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      {formatDateTime(submission.originalSubmittedAt)} ·
+                      Revision {submission.revision}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <Badge
+                      tone={
+                        submission.timing === "on_time" ? "success" : "warning"
+                      }
+                    >
+                      {submission.timing === "on_time" ? "On time" : "Late"}
+                    </Badge>
+                    <p className="mt-1 font-bold text-[var(--navy)]">
+                      GPA {submission.estimatedGpa?.toFixed(2) ?? "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {submission.entries.map((entry) => (
+                    <p key={entry.courseId} className="text-sm">
+                      <span className="font-semibold">{entry.courseName}:</span>{" "}
+                      {formatGrade(entry.reportedValue)}
+                    </p>
+                  ))}
+                </div>
+              </article>
+            ))}
+            {!member.submissions.length && (
+              <p className="p-8 text-center text-[var(--muted)]">
+                No weekly submissions for this semester.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-bold text-[var(--navy)]">
+              Current-week study sessions
+            </h2>
+          </CardHeader>
+          <div className="divide-y">
+            {member.studySessions.map((session) => (
+              <article
+                key={session.id}
+                className="flex items-center justify-between gap-4 p-5"
+              >
+                <div>
+                  <p className="font-bold text-[var(--navy)]">{session.date}</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    Recorded by {session.proctorName}
+                    {session.notes ? ` · ${session.notes}` : ""}
+                  </p>
+                </div>
+                <p className="font-bold text-[var(--navy)]">
+                  {formatHours(session.durationMinutes)} hr
+                </p>
+              </article>
+            ))}
+            {!member.studySessions.length && (
+              <p className="p-8 text-center text-[var(--muted)]">
+                No study sessions for the current week.
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="mt-5">
+        <CardHeader>
+          <h2 className="text-xl font-bold text-[var(--navy)]">
+            Academic alert history
+          </h2>
+        </CardHeader>
+        <div className="divide-y">
+          {member.alerts.map((alert) => (
+            <article key={alert.id} className="p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold text-[var(--navy)]">
+                    {alert.type.replaceAll("_", " ")}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {formatDateTime(alert.createdAt)}
+                  </p>
+                </div>
+                <Badge tone={alert.acknowledgedAt ? "neutral" : "warning"}>
+                  {alert.acknowledgedAt ? "Acknowledged" : "Open"}
+                </Badge>
+              </div>
+            </article>
+          ))}
+          {!member.alerts.length && (
+            <p className="p-8 text-center text-[var(--muted)]">
+              No academic alerts.
+            </p>
+          )}
+        </div>
+      </Card>
+    </ChairAppShell>
   );
 }

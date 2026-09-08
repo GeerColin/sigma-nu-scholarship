@@ -22,15 +22,55 @@ const nav = [
   { label: "Administration", href: "/administration", icon: ShieldCheck },
 ] as const;
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+type AppShellProps = {
+  children: React.ReactNode;
+  viewer: { name: string; email: string; role: string };
+  chapter: {
+    fraternityName: string;
+    chapterName: string;
+    institutionName: string;
+  } | null;
+  academicPeriod: {
+    semesterName: string;
+    weekLabel: string | null;
+    timezone: string;
+  } | null;
+};
+
+function initials(name: string) {
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+  return letters || "SN";
+}
+
+export function AppShell({
+  children,
+  viewer,
+  chapter,
+  academicPeriod,
+}: AppShellProps) {
+  const periodLabel = academicPeriod
+    ? [academicPeriod.semesterName, academicPeriod.weekLabel]
+        .filter(Boolean)
+        .join(" · ")
+    : "No active semester";
+
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[16.5rem_1fr]">
       <aside className="hidden border-r bg-[var(--navy)] text-white lg:flex lg:min-h-screen lg:flex-col">
         <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
           <BrandMark />
-          <div>
-            <p className="leading-tight font-bold">Sigma Nu</p>
-            <p className="text-sm text-white/65">Eta Chapter</p>
+          <div className="min-w-0">
+            <p className="truncate leading-tight font-bold">
+              {chapter?.fraternityName ?? "Scholarship"}
+            </p>
+            <p className="truncate text-sm text-white/65">
+              {chapter?.chapterName ?? "Chapter unavailable"}
+            </p>
           </div>
         </div>
         <nav
@@ -49,8 +89,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="border-t border-white/10 p-4">
-          <p className="text-sm font-semibold">Jordan Carter</p>
-          <p className="text-xs text-white/60">Scholarship Chair</p>
+          <p className="truncate text-sm font-semibold">{viewer.name}</p>
+          <p className="text-xs text-white/60">{viewer.role}</p>
+          <p className="mt-0.5 truncate text-xs text-white/45">
+            {viewer.email}
+          </p>
         </div>
       </aside>
 
@@ -62,18 +105,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="hidden lg:block">
             <p className="text-sm font-semibold text-[var(--muted)]">
-              Sigma Nu · Eta Chapter · Mercer University
+              {chapter
+                ? `${chapter.fraternityName} · ${chapter.chapterName} · ${chapter.institutionName}`
+                : "Chapter details unavailable"}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-[var(--muted)] sm:inline">
-              Fall 2026
+              {periodLabel}
             </span>
             <div
-              aria-hidden="true"
+              aria-label={`${viewer.name}, ${viewer.role}`}
               className="grid size-9 place-items-center rounded-full bg-[var(--navy)] text-sm font-bold text-white"
             >
-              JC
+              {initials(viewer.name)}
             </div>
           </div>
         </header>

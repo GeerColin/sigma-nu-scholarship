@@ -1,73 +1,188 @@
 import Link from "next/link";
-import { AppShell } from "@/components/app-shell";
-import { DemoBanner } from "@/components/demo-banner";
+import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { getMemberDirectory } from "@/features/members/queries";
 
-export default function ThisWeekPage() {
+const statuses = ["all", "on_time", "late", "missing"] as const;
+type StatusFilter = (typeof statuses)[number];
+
+const labels = {
+  on_time: "On Time",
+  late: "Late",
+  missing: "Missing",
+  not_configured: "Not configured",
+} as const;
+
+export default async function ThisWeekPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const query = await searchParams;
+  const selectedStatus = statuses.includes(query.status as StatusFilter)
+    ? (query.status as StatusFilter)
+    : "all";
+  const { members, period } = await getMemberDirectory({ filter: "active" });
+  const counts = {
+    on_time: members.filter((member) => member.submissionStatus === "on_time")
+      .length,
+    late: members.filter((member) => member.submissionStatus === "late").length,
+    missing: members.filter((member) => member.submissionStatus === "missing")
+      .length,
+  };
+  const shown =
+    selectedStatus === "all"
+      ? members
+      : members.filter((member) => member.submissionStatus === selectedStatus);
+
   return (
-    <AppShell>
-      <DemoBanner />
+    <ChairAppShell>
       <PageHeading
-        eyebrow="Fall 2026 · Week 5"
+        eyebrow={
+          period
+            ? [period.semester.name, period.currentWeek?.label]
+                .filter(Boolean)
+                .join(" · ")
+            : "Academic calendar"
+        }
         title="Weekly check-ins"
-        description="Deadline: Friday, September 4 at 11:59 PM · America/New_York"
+        description={
+          period?.currentWeek
+            ? "Deadline: " +
+              new Intl.DateTimeFormat(undefined, {
+                timeZone: period.semester.timezone,
+                dateStyle: "full",
+                timeStyle: "short",
+              }).format(new Date(period.currentWeek.deadlineAt)) +
+              " · " +
+              period.semester.timezone
+            : "No current academic week is configured."
+        }
         action={
-          <Link
-            href="/email?prepare=missing"
-            className="inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
-          >
-            Prepare missing emails
-          </Link>
+          period?.currentWeek ? (
+            <Link
+              href="/email?prepare=missing"
+              className="inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
+            >
+              Prepare Missing Grade Emails
+            </Link>
+          ) : undefined
         }
       />
-      <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          ["On time", "42", "success"],
-          ["Late", "3", "warning"],
-          ["Missing", "5", "danger"],
-        ].map(([label, value, tone]) => (
-          <Card key={label}>
+
+      {!period?.currentWeek ? (
+        <Card>
+          <CardContent>
+            <p className="font-bold text-[var(--navy)]">
+              No current academic week
+            </p>
+            <p className="mt-2 text-[var(--muted)]">
+              Configure an active semester covering today before reviewing
+              weekly submission status.
+            </p>
+            <Link
+              href="/settings"
+              className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
+            >
+              Set up semester
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {(
+              [
+                ["On Time", counts.on_time, "success"],
+                ["Late", counts.late, "warning"],
+                ["Missing", counts.missing, "danger"],
+              ] as const
+            ).map(([label, value, tone]) => (
+              <Card key={label}>
+                <CardContent>
+                  <p className="text-sm font-semibold text-[var(--muted)]">
+                    {label}
+                  </p>
+                  <div className="mt-2 flex items-end justify-between">
+                    <p className="text-4xl font-bold text-[var(--navy)]">
+                      {value}
+                    </p>
+                    <Badge tone={tone}>{label}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="mt-5">
             <CardContent>
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                {label}
-              </p>
-              <div className="mt-2 flex items-end justify-between">
-                <p className="text-4xl font-bold text-[var(--navy)]">{value}</p>
-                <Badge tone={tone as "success" | "warning" | "danger"}>
-                  {label}
-                </Badge>
+              <form className="mb-5 flex flex-wrap gap-2">
+                {statuses.map((status) => (
+                  <button
+                    key={status}
+                    name="status"
+                    value={status}
+                    className={
+                      "min-h-11 rounded-xl px-4 font-semibold " +
+                      (selectedStatus === status
+                        ? "bg-[var(--navy)] text-white"
+                        : "border bg-white text-[var(--navy)]")
+                    }
+                  >
+                    {status === "all"
+                      ? "All"
+                      : labels[status as keyof typeof labels]}
+                  </button>
+                ))}
+              </form>
+              <div className="divide-y">
+                {shown.map((member) => (
+                  <article
+                    key={member.id}
+                    className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center"
+                  >
+                    <div>
+                      <Link
+                        href={("/members/" + member.id) as never}
+                        className="font-bold text-[var(--navy)] hover:underline"
+                      >
+                        {member.name}
+                      </Link>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {member.submittedAt
+                          ? new Intl.DateTimeFormat(undefined, {
+                              timeZone: period.semester.timezone,
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            }).format(new Date(member.submittedAt))
+                          : "Not submitted"}
+                      </p>
+                    </div>
+                    <Badge
+                      tone={
+                        member.submissionStatus === "on_time"
+                          ? "success"
+                          : member.submissionStatus === "late"
+                            ? "warning"
+                            : "danger"
+                      }
+                    >
+                      {labels[member.submissionStatus]}
+                    </Badge>
+                  </article>
+                ))}
+                {!shown.length && (
+                  <p className="py-8 text-center text-[var(--muted)]">
+                    No active members match this status.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
-      <Card className="mt-5">
-        <CardContent>
-          <h2 className="text-xl font-bold text-[var(--navy)]">Exceptions</h2>
-          <div className="mt-4 divide-y">
-            {[
-              ["Cameron Lee", "Missing", "Not submitted"],
-              ["Taylor Brooks", "Late", "Saturday, 12:14 AM"],
-              ["Riley Bennett", "Missing", "Not submitted"],
-            ].map(([name, status, time]) => (
-              <div
-                key={name}
-                className="flex items-center justify-between gap-4 py-4"
-              >
-                <div>
-                  <p className="font-bold text-[var(--navy)]">{name}</p>
-                  <p className="text-sm text-[var(--muted)]">{time}</p>
-                </div>
-                <Badge tone={status === "Late" ? "warning" : "danger"}>
-                  {status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </AppShell>
+        </>
+      )}
+    </ChairAppShell>
   );
 }

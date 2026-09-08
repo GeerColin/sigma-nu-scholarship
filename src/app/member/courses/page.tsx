@@ -1,42 +1,34 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
-import { DemoBanner } from "@/components/demo-banner";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   CourseManager,
   type CourseListItem,
 } from "@/features/courses/course-manager";
-import { getCurrentUserContext } from "@/lib/auth/context";
-import { isDemoMode } from "@/lib/env";
+import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
+import { requireApprovedMemberContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
-const demoCourses: CourseListItem[] = [
-  {
-    id: "30000000-0000-4000-8000-000000000001",
-    name: "Calculus II",
-    creditHours: 4,
-    gradingType: "percentage",
-  },
-  {
-    id: "30000000-0000-4000-8000-000000000002",
-    name: "Chemistry",
-    creditHours: 4,
-    gradingType: "letter",
-  },
-  {
-    id: "30000000-0000-4000-8000-000000000003",
-    name: "Great Books",
-    creditHours: 3,
-    gradingType: "pass_fail",
-  },
-  {
-    id: "30000000-0000-4000-8000-000000000004",
-    name: "Engineering Seminar",
-    creditHours: 1,
-    gradingType: "custom",
-    customDescription: "Satisfactory / Unsatisfactory",
-  },
-];
+function scaleMinimums(value: unknown): CourseListItem["scaleMinimums"] {
+  if (!Array.isArray(value)) return null;
+  const minimum = (letter: string) => {
+    const band = value.find(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "letter" in item &&
+        item.letter === letter,
+    );
+    return band && "minimum" in band ? Number(band.minimum) : Number.NaN;
+  };
+  const result = {
+    a: minimum("A"),
+    b: minimum("B"),
+    c: minimum("C"),
+    d: minimum("D"),
+  };
+  return Object.values(result).every(Number.isFinite) ? result : null;
+}
 
 export default async function CoursesPage({
   searchParams,
@@ -44,29 +36,37 @@ export default async function CoursesPage({
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  let courses = demoCourses;
-  if (!isDemoMode) {
-    const context = await getCurrentUserContext();
-    if (!context) redirect("/login");
-    if (!context.memberId) redirect("/request-access");
-    const supabase = await createClient();
+  const context = await requireApprovedMemberContext();
+  const period = await getActiveAcademicPeriod(context.chapterId!);
+  const supabase = await createClient();
+  let courses: CourseListItem[] = [];
+
+  if (period) {
     const { data, error } = await supabase
       .from("courses")
       .select(
-        "id, name, credit_hours, grading_type, custom_grading_description",
+        "id, name, credit_hours, grading_type, custom_grading_description, grading_scales(scale)",
       )
-      .eq("member_id", context.memberId)
+      .eq("member_id", context.memberId!)
+      .eq("semester_id", period.semester.id)
       .is("archived_at", null)
       .order("created_at");
     if (error) throw new Error("Could not load courses.");
-    courses = (data ?? []).map((course) => ({
-      id: course.id,
-      name: course.name,
-      creditHours: Number(course.credit_hours),
-      gradingType: course.grading_type,
-      customDescription: course.custom_grading_description,
-    })) as CourseListItem[];
+    courses = (data ?? []).map((course) => {
+      const scale = course.grading_scales as unknown as {
+        scale: unknown;
+      } | null;
+      return {
+        id: course.id,
+        name: course.name,
+        creditHours: Number(course.credit_hours),
+        gradingType: course.grading_type,
+        customDescription: course.custom_grading_description,
+        scaleMinimums: scaleMinimums(scale?.scale),
+      };
+    }) as CourseListItem[];
   }
+
   return (
     <main className="mx-auto min-h-screen max-w-6xl p-4 sm:p-7">
       <header className="mb-7 flex items-center justify-between">
@@ -74,7 +74,9 @@ export default async function CoursesPage({
           <BrandMark />
           <div>
             <p className="font-bold text-[var(--navy)]">My Courses</p>
-            <p className="text-sm text-[var(--muted)]">Fall 2026</p>
+            <p className="text-sm text-[var(--muted)]">
+              {period?.semester.name ?? "No active semester"}
+            </p>
           </div>
         </div>
         <Link
@@ -84,7 +86,6 @@ export default async function CoursesPage({
           Home
         </Link>
       </header>
-      {isDemoMode && <DemoBanner />}
       {params.status && (
         <p
           role="status"
@@ -98,17 +99,33 @@ export default async function CoursesPage({
           role="alert"
           className="mb-5 rounded-xl bg-[var(--danger-soft)] p-4 font-semibold text-[var(--danger)]"
         >
-          We couldn’t save that change. Nothing was altered. Please try again.
+          We couldn’t save that change. Nothing was altered. Check the course
+          setup and try again.
         </p>
       )}
       <div className="mb-7">
         <h1 className="text-4xl font-bold text-[var(--navy)]">Courses</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Set these up once per semester. Archived courses stay in your academic
-          history.
+          Configure courses for the active semester. Archived courses and prior
+          grade snapshots remain in academic history.
         </p>
       </div>
-      <CourseManager initialCourses={courses} demo={isDemoMode} />
+
+      {period ? (
+        <CourseManager initialCourses={courses} />
+      ) : (
+        <Card>
+          <CardContent>
+            <p className="font-bold text-[var(--navy)]">
+              No active semester configured.
+            </p>
+            <p className="mt-2 text-[var(--muted)]">
+              The Scholarship Chair or an Admin must configure a semester before
+              courses can be added.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </main>
   );
 }

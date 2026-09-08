@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AppShell } from "@/components/app-shell";
-import { DemoBanner } from "@/components/demo-banner";
+import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { Card, CardContent } from "@/components/ui/card";
+import { AccessManagement } from "@/features/administration/access-management";
+import { requireChairContext } from "@/lib/auth/guards";
 
 const sections = {
   access: [
@@ -29,15 +30,18 @@ const sections = {
 } as const;
 export default async function AdministrationSectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ section: string }>;
+  searchParams: Promise<{ status?: string; error?: string }>;
 }) {
+  await requireChairContext();
   const { section } = await params;
+  const query = await searchParams;
   const content = sections[section as keyof typeof sections];
   if (!content) notFound();
   return (
-    <AppShell>
-      <DemoBanner />
+    <ChairAppShell>
       <PageHeading
         eyebrow="Administration"
         title={content[0]}
@@ -51,19 +55,22 @@ export default async function AdministrationSectionPage({
           </Link>
         }
       />
-      <Card>
-        <CardContent>
-          <p className="font-semibold text-[var(--navy)]">
-            Secure environment required
-          </p>
-          <p className="mt-2 max-w-2xl text-[var(--muted)]">
-            This development view intentionally does not mutate synthetic
-            records. In a configured Supabase environment, the server action
-            uses authenticated chapter roles, validated input, a transaction
-            where needed, and an append-only audit event.
-          </p>
-        </CardContent>
-      </Card>
-    </AppShell>
+      {section === "access" ? (
+        <AccessManagement status={query.status} error={query.error} />
+      ) : (
+        <Card>
+          <CardContent>
+            <p className="font-semibold text-[var(--navy)]">
+              This workflow is not implemented yet
+            </p>
+            <p className="mt-2 max-w-2xl text-[var(--muted)]">
+              No chapter records can be changed from this page yet. The page is
+              protected by authenticated chapter-role checks while its complete
+              audited workflow is built.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </ChairAppShell>
   );
 }

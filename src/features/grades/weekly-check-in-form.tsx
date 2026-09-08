@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { submitWeeklyCheckIn } from "@/features/grades/actions";
@@ -16,11 +15,9 @@ export type CheckInCourse = {
 export function WeeklyCheckInForm({
   weekId,
   courses,
-  demo,
 }: {
   weekId: string;
   courses: CheckInCourse[];
-  demo: boolean;
 }) {
   const initial = useMemo(
     () =>
@@ -31,7 +28,6 @@ export function WeeklyCheckInForm({
   );
   const [values, setValues] =
     useState<Record<string, string | number>>(initial);
-  const [submitted, setSubmitted] = useState(false);
   const entries = courses.map((course) => ({
     courseId: course.id,
     value:
@@ -40,29 +36,9 @@ export function WeeklyCheckInForm({
         : String(values[course.id]),
   }));
   return (
-    <form
-      action={demo ? undefined : submitWeeklyCheckIn}
-      onSubmit={
-        demo
-          ? (event) => {
-              event.preventDefault();
-              setSubmitted(true);
-            }
-          : undefined
-      }
-      className="space-y-4"
-    >
+    <form action={submitWeeklyCheckIn} className="space-y-4">
       <input type="hidden" name="weekId" value={weekId} />
       <input type="hidden" name="entries" value={JSON.stringify(entries)} />
-      {submitted && (
-        <p
-          role="status"
-          className="flex items-center gap-2 rounded-xl bg-[var(--success-soft)] p-4 font-semibold text-[var(--success)]"
-        >
-          <CheckCircle2 className="size-5" />
-          Development submission recorded for this preview.
-        </p>
-      )}
       {courses.map((course) => (
         <Card key={course.id}>
           <CardContent className="grid gap-4 sm:grid-cols-[1fr_14rem] sm:items-center">

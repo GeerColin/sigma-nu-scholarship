@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireApprovedMemberContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
 const entriesSchema = z
@@ -18,6 +19,7 @@ const entriesSchema = z
   .max(30);
 
 export async function submitWeeklyCheckIn(formData: FormData) {
+  await requireApprovedMemberContext();
   const weekId = z.string().uuid().safeParse(formData.get("weekId"));
   let rawEntries: unknown;
   try {

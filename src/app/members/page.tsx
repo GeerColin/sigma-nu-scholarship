@@ -1,96 +1,143 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
-import { DemoBanner } from "@/components/demo-banner";
+import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { getMemberDirectory } from "@/features/members/queries";
 
-const members = [
-  {
-    name: "Alex Morgan",
-    gpa: "3.62",
-    submission: "On time",
-    hours: "1 / 1",
-    alert: false,
-  },
-  {
-    name: "Cameron Lee",
-    gpa: "2.84",
-    submission: "Missing",
-    hours: "1 / 2",
-    alert: true,
-  },
-  {
-    name: "Taylor Brooks",
-    gpa: "3.18",
-    submission: "Late",
-    hours: "1 / 1",
-    alert: false,
-  },
-  {
-    name: "Riley Bennett",
-    gpa: "2.31",
-    submission: "On time",
-    hours: "0 / 4",
-    alert: true,
-  },
-] as const;
+function optionalNumber(value: string | undefined) {
+  if (value === undefined || value.trim() === "") return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function formatHours(minutes: number) {
+  return `${(minutes / 60).toLocaleString(undefined, { maximumFractionDigits: 2 })} hr`;
+}
+
+const submissionLabels = {
+  on_time: "On time",
+  late: "Late",
+  missing: "Missing",
+  not_configured: "No current week",
+} as const;
 
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string }>;
+  searchParams: Promise<{
+    filter?: string;
+    q?: string;
+    gpaMin?: string;
+    gpaMax?: string;
+  }>;
 }) {
-  const { filter, q = "" } = await searchParams;
-  const shown = members.filter(
-    (member) =>
-      member.name.toLowerCase().includes(q.toLowerCase()) &&
-      (filter !== "alerts" || member.alert),
-  );
+  const params = await searchParams;
+  const gpaMin = optionalNumber(params.gpaMin);
+  const gpaMax = optionalNumber(params.gpaMax);
+  const { members, period } = await getMemberDirectory({
+    q: params.q,
+    filter: params.filter,
+    gpaMin,
+    gpaMax,
+  });
+  const gpaLabel = period
+    ? `Estimated ${period.semester.name} GPA`
+    : "Estimated semester GPA";
+
   return (
-    <AppShell>
-      <DemoBanner />
+    <ChairAppShell>
       <PageHeading
         eyebrow="Roster"
         title="Members"
-        description="Find active and historical members, then open a profile for secure academic review."
+        description="Search active and historical members and open a profile for secure academic review."
       />
+
+      {!period && (
+        <div className="mb-5 rounded-xl border border-[var(--warning)]/25 bg-[var(--warning-soft)] p-4">
+          <p className="font-bold text-[var(--navy)]">
+            No active semester configured.
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Set up the current semester to calculate weekly academic status.
+          </p>
+          <Link
+            href="/settings"
+            className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
+          >
+            Set up semester
+          </Link>
+        </div>
+      )}
+
       <Card>
         <CardContent>
-          <form className="mb-5 flex flex-col gap-3 sm:flex-row">
-            <label className="relative flex-1">
+          <form className="mb-5 grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+            <label className="relative">
               <span className="sr-only">Search members</span>
               <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-[var(--muted)]" />
               <input
                 name="q"
-                defaultValue={q}
+                defaultValue={params.q ?? ""}
                 placeholder="Search members"
                 className="min-h-12 w-full rounded-xl border bg-white pr-4 pl-10"
               />
             </label>
             <select
               name="filter"
-              defaultValue={filter ?? "all"}
+              defaultValue={params.filter ?? "all"}
               aria-label="Filter members"
               className="min-h-12 rounded-xl border bg-white px-4"
             >
-              <option value="all">All active members</option>
-              <option value="alerts">Academic alerts</option>
-              <option value="missing">Missing check-in</option>
+              <option value="all">All members</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="alumni">Alumni</option>
+              <option value="missing">Missing grades</option>
+              <option value="incomplete">Incomplete hours</option>
+              <option value="alerts">Academic alert</option>
             </select>
+            <div className="flex gap-2">
+              <label>
+                <span className="sr-only">Minimum estimated GPA</span>
+                <input
+                  name="gpaMin"
+                  type="number"
+                  min="0"
+                  max="4"
+                  step="0.01"
+                  defaultValue={params.gpaMin ?? ""}
+                  placeholder="Min GPA"
+                  className="min-h-12 w-28 rounded-xl border px-3"
+                />
+              </label>
+              <label>
+                <span className="sr-only">Maximum estimated GPA</span>
+                <input
+                  name="gpaMax"
+                  type="number"
+                  min="0"
+                  max="4"
+                  step="0.01"
+                  defaultValue={params.gpaMax ?? ""}
+                  placeholder="Max GPA"
+                  className="min-h-12 w-28 rounded-xl border px-3"
+                />
+              </label>
+            </div>
             <button className="min-h-12 rounded-xl bg-[var(--navy)] px-5 font-semibold text-white">
               Apply
             </button>
           </form>
+
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[42rem] text-left">
+            <table className="w-full min-w-[54rem] text-left">
               <thead>
                 <tr className="border-b text-sm text-[var(--muted)]">
                   <th className="pb-3 font-semibold">Member</th>
-                  <th className="pb-3 font-semibold">
-                    Estimated Fall 2026 GPA
-                  </th>
+                  <th className="pb-3 font-semibold">Status</th>
+                  <th className="pb-3 font-semibold">{gpaLabel}</th>
                   <th className="pb-3 font-semibold">Check-in</th>
                   <th className="pb-3 font-semibold">Study hours</th>
                   <th className="pb-3">
@@ -99,51 +146,77 @@ export default async function MembersPage({
                 </tr>
               </thead>
               <tbody>
-                {shown.map((member) => (
-                  <tr key={member.name} className="border-b last:border-0">
-                    <td className="py-4 font-bold text-[var(--navy)]">
-                      {member.name}
-                      {member.alert && (
-                        <Badge tone="warning" className="ml-2">
-                          Review
+                {members.map((member) => {
+                  const remaining =
+                    member.requiredMinutes === null
+                      ? null
+                      : Math.max(
+                          member.requiredMinutes - member.completedMinutes,
+                          0,
+                        );
+                  return (
+                    <tr key={member.id} className="border-b last:border-0">
+                      <td className="py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-[var(--navy)]">
+                            {member.name}
+                          </span>
+                          {member.hasAcademicAlert && (
+                            <Badge tone="warning">Academic alert</Badge>
+                          )}
+                          {!member.connected && <Badge>Not connected</Badge>}
+                        </div>
+                      </td>
+                      <td className="py-4 capitalize">{member.status}</td>
+                      <td className="py-4">
+                        {member.estimatedGpa?.toFixed(2) ?? "—"}
+                      </td>
+                      <td className="py-4">
+                        <Badge
+                          tone={
+                            member.submissionStatus === "on_time"
+                              ? "success"
+                              : member.submissionStatus === "late"
+                                ? "warning"
+                                : member.submissionStatus === "missing"
+                                  ? "danger"
+                                  : "neutral"
+                          }
+                        >
+                          {submissionLabels[member.submissionStatus]}
                         </Badge>
-                      )}
-                    </td>
-                    <td className="py-4">{member.gpa}</td>
-                    <td className="py-4">
-                      <Badge
-                        tone={
-                          member.submission === "On time"
-                            ? "success"
-                            : member.submission === "Late"
-                              ? "warning"
-                              : "danger"
-                        }
-                      >
-                        {member.submission}
-                      </Badge>
-                    </td>
-                    <td className="py-4">{member.hours} hours</td>
-                    <td className="py-4 text-right">
-                      <Link
-                        href="/members/demo-member"
-                        className="font-semibold text-[var(--navy)] underline-offset-4 hover:underline"
-                      >
-                        View profile
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-4">
+                        {member.requiredMinutes === null
+                          ? "No assignment"
+                          : `${formatHours(member.completedMinutes)} / ${formatHours(member.requiredMinutes)}`}
+                        {remaining !== null && remaining > 0 && (
+                          <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                            {formatHours(remaining)} remaining
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-4 text-right">
+                        <Link
+                          href={`/members/${member.id}`}
+                          className="font-semibold text-[var(--navy)] underline-offset-4 hover:underline"
+                        >
+                          View profile
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-            {shown.length === 0 && (
+            {!members.length && (
               <p className="py-10 text-center text-[var(--muted)]">
-                No members match this filter.
+                No members match these filters.
               </p>
             )}
           </div>
         </CardContent>
       </Card>
-    </AppShell>
+    </ChairAppShell>
   );
 }

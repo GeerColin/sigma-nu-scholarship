@@ -61,7 +61,17 @@ select throws_ok($$select public.transfer_scholarship_chair('10000000-0000-4000-
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select lives_ok($$select public.transfer_scholarship_chair('10000000-0000-4000-8000-000000000012')$$, 'Chair can complete an atomic handoff');
 set local role postgres;
-select is((select count(*)::integer from public.member_roles where role = 'scholarship_chair' and active), 1, 'exactly one active Chair remains');
+select is(
+  (
+    select count(*)::integer
+    from public.member_roles
+    where chapter_id = '10000000-0000-4000-8000-000000000010'
+      and role = 'scholarship_chair'
+      and active
+  ),
+  1,
+  'exactly one active Chair remains in the test chapter'
+);
 
 select * from finish();
 rollback;

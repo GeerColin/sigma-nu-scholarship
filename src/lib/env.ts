@@ -10,7 +10,6 @@ const publicEnvSchema = z.object({
     )
     .optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_DEMO_MODE: z.enum(["true", "false"]).default("true"),
 });
 
 export const publicEnv = publicEnvSchema.parse({
@@ -18,12 +17,7 @@ export const publicEnv = publicEnvSchema.parse({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || undefined,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || undefined,
-  NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE || undefined,
 });
-
-export const isDemoMode =
-  process.env.NODE_ENV !== "production" &&
-  publicEnv.NEXT_PUBLIC_DEMO_MODE === "true";
 
 export function requireSupabasePublicEnv() {
   if (

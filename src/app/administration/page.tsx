@@ -1,64 +1,108 @@
 import Link from "next/link";
-import { AppShell } from "@/components/app-shell";
-import { DemoBanner } from "@/components/demo-banner";
+import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { requireChairContext } from "@/lib/auth/guards";
+import { createClient } from "@/lib/supabase/server";
 
-export default function AdministrationPage() {
+export default async function AdministrationPage() {
+  const context = await requireChairContext();
+  const supabase = await createClient();
+  const [
+    { count: pendingCount, error: requestError },
+    { data: roles, error: roleError },
+    { count: auditCount, error: auditError },
+  ] = await Promise.all([
+    supabase
+      .from("access_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase
+      .from("member_roles")
+      .select("role")
+      .eq("chapter_id", context.chapterId!)
+      .eq("active", true)
+      .in("role", ["proctor", "admin"]),
+    supabase
+      .from("audit_log")
+      .select("id", { count: "exact", head: true })
+      .eq("chapter_id", context.chapterId!),
+  ]);
+  if (requestError || roleError || auditError) {
+    throw new Error("Could not load administration status.");
+  }
+  const proctorCount = (roles ?? []).filter(
+    (role) => role.role === "proctor",
+  ).length;
+  const adminCount = (roles ?? []).filter(
+    (role) => role.role === "admin",
+  ).length;
+  const cards = [
+    {
+      title: "Account requests",
+      detail: (pendingCount ?? 0) + " awaiting review",
+      href: "/administration/access",
+      ready: true,
+    },
+    {
+      title: "Roles and proctors",
+      detail: proctorCount + " proctors · " + adminCount + " admins",
+      href: "/administration/roles",
+      ready: false,
+    },
+    {
+      title: "Semester export",
+      detail: "Export workflow not implemented",
+      href: "/administration/export",
+      ready: false,
+    },
+    {
+      title: "Audit log",
+      detail: (auditCount ?? 0) + " append-only events",
+      href: "/administration/audit",
+      ready: false,
+    },
+    {
+      title: "Scholarship Chair handoff",
+      detail: "Readiness wizard not implemented",
+      href: "/administration/handoff",
+      ready: false,
+    },
+  ] as const;
+
   return (
-    <AppShell>
-      <DemoBanner />
+    <ChairAppShell>
       <PageHeading
         eyebrow="Governance"
         title="Administration"
-        description="Manage access, roles, exports, audit history, and the protected Scholarship Chair handoff."
+        description="Manage account access and review the implementation status of protected governance workflows."
       />
       <div className="grid gap-4 md:grid-cols-2">
-        {(
-          [
-            ["Account requests", "3 awaiting review", "/administration/access"],
-            [
-              "Roles and proctors",
-              "5 proctors · 2 admins",
-              "/administration/roles",
-            ],
-            [
-              "Semester export",
-              "Structured CSV files + manifest",
-              "/administration/export",
-            ],
-            [
-              "Audit log",
-              "Append-only security history",
-              "/administration/audit",
-            ],
-            [
-              "Scholarship Chair handoff",
-              "Readiness checks and atomic transfer",
-              "/administration/handoff",
-            ],
-          ] as const
-        ).map(([title, detail, href]) => (
+        {cards.map((card) => (
           <Link
-            key={title}
-            href={href}
+            key={card.title}
+            href={card.href}
             className="rounded-[var(--radius)] focus-visible:outline"
           >
             <Card className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
               <CardContent>
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-bold text-[var(--navy)]">{title}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{detail}</p>
+                    <p className="font-bold text-[var(--navy)]">{card.title}</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      {card.detail}
+                    </p>
                   </div>
-                  <Badge>Open</Badge>
+                  <Badge tone={card.ready ? "success" : "neutral"}>
+                    {card.ready ? "Available" : "Upcoming"}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
-    </AppShell>
+    </ChairAppShell>
   );
 }

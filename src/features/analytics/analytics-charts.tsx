@@ -13,15 +13,15 @@ import {
   YAxis,
 } from "recharts";
 
-const data = [
-  { week: "W1", onTime: 88, late: 6, missing: 6, estimatedGpa: 3.02 },
-  { week: "W2", onTime: 84, late: 8, missing: 8, estimatedGpa: 3.08 },
-  { week: "W3", onTime: 90, late: 4, missing: 6, estimatedGpa: 3.11 },
-  { week: "W4", onTime: 86, late: 8, missing: 6, estimatedGpa: 3.06 },
-  { week: "W5", onTime: 84, late: 6, missing: 10, estimatedGpa: 3.12 },
-];
+export type AnalyticsPoint = {
+  week: string;
+  onTime: number;
+  late: number;
+  missing: number;
+  estimatedGpa: number | null;
+};
 
-export function AnalyticsCharts() {
+export function AnalyticsCharts({ data }: { data: AnalyticsPoint[] }) {
   return (
     <div className="grid gap-8 xl:grid-cols-2">
       <figure>
@@ -57,7 +57,7 @@ export function AnalyticsCharts() {
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="week" />
-              <YAxis domain={[2.5, 3.5]} />
+              <YAxis domain={[0, 4]} />
               <Tooltip />
               <Line
                 type="monotone"
