@@ -88,9 +88,9 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 ## Phase 11 — Production hardening
 
 - [~] Route, unit, hosted/local database, formatting, lint, strict TypeScript, and build gates are maintained during implementation
-- [~] Accessibility, responsive, security, error/loading, and empty-state review; all admin routes are reachable from the mobile menu and primary forms use responsive layouts
-- [~] Backup/export verification and final automated test suite; ZIP structure is unit-tested and the full local suite is green
-- [!] Configure production Supabase, Google OAuth, Resend, Vercel, and DNS
+- [x] Accessibility and responsive review for the primary production workflows; the mobile menu, bottom navigation, skip link, and tested pages have no horizontal overflow at 390 x 844
+- [~] Security, error/loading, empty-state, and backup/export review; the ZIP structure is unit-tested, the authenticated production export endpoint is exposed, and the full automated suite is green
+- [!] Production Supabase, Google OAuth, and Vercel are configured; configure Resend and optional custom DNS when production email or a custom domain is required
 
 ## Hosted development verification — 2026-09-08
 
@@ -145,8 +145,18 @@ The remaining live authorization boundary is separate Google OAuth test identiti
 - Added persisted email-template versions, exact-message review, attempt counts, failure state, failed-message retry, Resend signature verification, provider-event idempotency, and a service-role-only webhook database operation. `EMAIL_MODE=mock` remains the safe deployment default.
 - Added the hash-backed first-time setup page/checklist, handoff readiness UI, explicit atomic Chair transfer confirmation, an in-app Chair guide, skip navigation, and a complete mobile administration menu.
 - Local evidence: 89 unit tests pass across 16 files and 182 pgTAP/RLS checks pass across 13 files. The new migrations are `202609090014` through `202609090018`.
-- Hosted migration history matches the repository through `202609090018`, the hosted schema diff is clean through `202609090017`, and all 182 hosted synthetic pgTAP/RLS checks pass. The hosted run exposed and then verified the fix for a legacy cross-chapter access-request visibility flaw.
-- No real roster or academic record was imported. Hosted web deployment and production browser verification of these new workflows remain pending.
+- Hosted migration history matches the repository through `202609090018`, the hosted schema diff is clean through `202609090018`, and all 182 hosted synthetic pgTAP/RLS checks pass. The hosted run exposed and then verified the fix for a legacy cross-chapter access-request visibility flaw.
+- No real roster or academic record was imported. The new workflows are deployed and production browser verification is recorded below.
+
+## Production workflow verification — 2026-09-09
+
+- The stable Vercel deployment exposes the completed Chair workflows at `/administration/import`, `/administration/export`, `/administration/roles`, `/administration/handoff`, `/settings`, `/setup`, `/email`, and `/guide`.
+- A signed-out request to `/administration` redirected to `/login`. A fresh Google OAuth round trip returned to the production dashboard as the existing Scholarship Chair and restored the protected navigation and synthetic chapter state.
+- The Administration hub reported one awaiting request, one Proctor, one Admin, and 43 append-only audit events. The role page disabled operational grants for unlinked members, and the handoff page offered only active connected successors.
+- The setup checklist reported chapter identity, semester, academic weeks, study-hour rules, and roster complete; only the production email identity remains incomplete.
+- The email center reloaded four persistent synthetic batches: seven messages completed with zero failures and one retained five-recipient draft. No send, approval, role, handoff, settings, roster, or academic mutation was performed during this verification.
+- At a 390 x 844 viewport, Settings, Email, Roles, CSV Import, Semester Export, Chair Handoff, Setup, and Guide all reported no horizontal overflow. The compact navigation expanded to all application routes and the bottom primary navigation remained available.
+- The authenticated export page exposed the active synthetic semester ZIP endpoint. Archive generation and its 19 schema-stable CSV files plus manifest remain covered by unit tests; no real roster or academic data was downloaded or imported.
 
 ## Connected synthetic workflow verification — 2026-09-08
 
