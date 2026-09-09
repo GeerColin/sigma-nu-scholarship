@@ -4,12 +4,14 @@ import {
   BookOpenCheck,
   Clock3,
   House,
+  LogOut,
   Mail,
   Settings,
   ShieldCheck,
   Users,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { signOut } from "@/features/auth/actions";
 
 const nav = [
   { label: "Dashboard", href: "/", icon: House },
@@ -94,6 +96,15 @@ export function AppShell({
           <p className="mt-0.5 truncate text-xs text-white/45">
             {viewer.email}
           </p>
+          <form action={signOut} className="mt-3">
+            <button
+              type="submit"
+              className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white"
+            >
+              <LogOut aria-hidden="true" className="size-4" />
+              Sign out
+            </button>
+          </form>
         </div>
       </aside>
 
@@ -120,6 +131,15 @@ export function AppShell({
             >
               {initials(viewer.name)}
             </div>
+            <form action={signOut} className="lg:hidden">
+              <button
+                type="submit"
+                aria-label="Sign out"
+                className="grid size-10 place-items-center rounded-lg text-[var(--muted)] transition hover:bg-[var(--surface-subtle)] hover:text-[var(--navy)]"
+              >
+                <LogOut aria-hidden="true" className="size-5" />
+              </button>
+            </form>
           </div>
         </header>
         <main className="mx-auto max-w-[90rem] p-4 pb-24 sm:p-6 lg:p-8">
