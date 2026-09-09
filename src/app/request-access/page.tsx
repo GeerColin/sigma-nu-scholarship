@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requestAccess } from "@/features/auth/actions";
@@ -62,6 +63,16 @@ export default async function RequestAccessPage({
               Submit access request
             </Button>
           </form>
+          <p className="mt-5 text-center text-sm text-[var(--muted)]">
+            Initializing a brand-new chapter?{" "}
+            <Link
+              href={"/setup" as never}
+              className="font-semibold text-[var(--navy)] hover:underline"
+            >
+              Use the one-time setup wizard
+            </Link>
+            .
+          </p>
         </CardContent>
       </Card>
     </main>

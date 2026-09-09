@@ -40,6 +40,18 @@ export default async function AdministrationPage() {
   ).length;
   const cards = [
     {
+      title: "Setup checklist",
+      detail: "Review chapter configuration readiness",
+      href: "/setup",
+      ready: true,
+    },
+    {
+      title: "CSV roster import",
+      detail: "Validated preview with duplicate protection",
+      href: "/administration/import",
+      ready: true,
+    },
+    {
       title: "Account requests",
       detail: (pendingCount ?? 0) + " awaiting review",
       href: "/administration/access",
@@ -49,13 +61,13 @@ export default async function AdministrationPage() {
       title: "Roles and proctors",
       detail: proctorCount + " proctors · " + adminCount + " admins",
       href: "/administration/roles",
-      ready: false,
+      ready: true,
     },
     {
       title: "Semester export",
-      detail: "Export workflow not implemented",
+      detail: "Download a structured CSV and JSON archive",
       href: "/administration/export",
-      ready: false,
+      ready: true,
     },
     {
       title: "Audit log",
@@ -65,9 +77,9 @@ export default async function AdministrationPage() {
     },
     {
       title: "Scholarship Chair handoff",
-      detail: "Readiness wizard not implemented",
+      detail: "Readiness checks and atomic role transfer",
       href: "/administration/handoff",
-      ready: false,
+      ready: true,
     },
   ] as const;
 
@@ -82,7 +94,7 @@ export default async function AdministrationPage() {
         {cards.map((card) => (
           <Link
             key={card.title}
-            href={card.href}
+            href={card.href as never}
             className="rounded-[var(--radius)] focus-visible:outline"
           >
             <Card className="h-full transition hover:-translate-y-0.5 hover:shadow-md">

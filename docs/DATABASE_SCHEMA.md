@@ -9,6 +9,7 @@ All tenant-owned rows carry `chapter_id` directly or inherit it through a constr
 - `members`: durable roster record, optionally linked to one profile; Active/Inactive/Alumni.
 - `member_roles`: many-to-many Member/Proctor/Admin/Scholarship Chair roles.
 - `access_requests`: unapproved identity request, requested name, match suggestion, decision state.
+- `application_configuration`: private singleton binding this chapter-specific deployment to the chapter that receives access requests.
 
 ## Academic calendar and courses
 
@@ -32,7 +33,7 @@ All tenant-owned rows carry `chapter_id` directly or inherit it through a constr
 
 ## Communication and governance
 
-- `email_templates`, `email_batches`, `email_messages`, `email_delivery_events`: rendered final content, approval, idempotency, provider state.
+- `email_templates`, `email_batches`, `email_messages`, `email_delivery_events`: versioned templates, rendered final content, approval, stable idempotency, attempt/failure history, and idempotent provider events.
 - `audit_log`: append-only actor/action/entity/before/after/reason/timestamp.
 - `bootstrap_tokens`: hash-only, single-use, expiring initialization credentials.
 - `chapter_settings`: alert thresholds, sender configuration, and operational flags.

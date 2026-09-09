@@ -54,7 +54,7 @@ select lives_ok(
 select is((select count(*)::integer from public.grade_submissions), 2, 'both submission revisions are retained');
 select is((select count(*)::integer from public.grade_submissions where is_current), 1, 'only the latest revision is current');
 set local role postgres;
-select is((select count(*)::integer from public.academic_alerts), 1, 'significant percentage decrease creates an academic alert');
+select is((select count(*)::integer from public.academic_alerts where chapter_id = '20000000-0000-4000-8000-000000000010'), 1, 'significant percentage decrease creates an academic alert');
 
 update public.courses set credit_hours = 4 where id = '20000000-0000-4000-8000-000000000031';
 set local role authenticated;

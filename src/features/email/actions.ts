@@ -32,6 +32,49 @@ export async function prepareEmailBatch(formData: FormData) {
     requested_batch_type: parsed.data.batchType,
   });
   if (error || !data) redirect(`${emailPath}?error=no-recipients` as never);
+
+  const { data: activeTemplate, error: templateError } = await supabase
+    .from("email_templates")
+    .select("subject_template, body_template")
+    .eq("template_type", parsed.data.batchType)
+    .eq("active", true)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (templateError)
+    redirect(`${emailPath}?error=template-not-loaded` as never);
+  if (activeTemplate) {
+    const { data: preparedMessages, error: preparedError } = await supabase
+      .from("email_messages")
+      .select("id, template_context")
+      .eq("batch_id", data)
+      .eq("state", "draft");
+    if (preparedError || !preparedMessages?.length) {
+      redirect(`${emailPath}?error=template-not-applied` as never);
+    }
+    let updates;
+    try {
+      updates = preparedMessages.map((message) => ({
+        id: message.id,
+        ...renderEmailTemplate(
+          {
+            subject: activeTemplate.subject_template,
+            body: activeTemplate.body_template,
+          },
+          message.template_context as EmailTemplateContext,
+        ),
+      }));
+    } catch {
+      redirect(`${emailPath}?error=template-not-applied` as never);
+    }
+    const { error: replaceError } = await supabase.rpc(
+      "replace_email_batch_messages",
+      { target_batch_id: data, message_updates: updates },
+    );
+    if (replaceError) {
+      redirect(`${emailPath}?error=template-not-applied` as never);
+    }
+  }
   revalidatePath(emailPath);
   revalidatePath("/");
   redirect(`${emailPath}?status=prepared&batch=${data}` as never);
@@ -115,11 +158,33 @@ export async function approveEmailBatch(formData: FormData) {
 }
 
 export async function sendApprovedEmailBatch(formData: FormData) {
-  const context = await requireChairContext();
+  await requireChairContext();
   const parsed = emailBatchIdSchema.safeParse({
     batchId: formData.get("batchId"),
   });
   if (!parsed.success) redirect(`${emailPath}?error=invalid-batch` as never);
+
+  await deliverEmailBatch(parsed.data.batchId, false);
+  revalidatePath(emailPath);
+  revalidatePath("/");
+  redirect(`${emailPath}?status=sent` as never);
+}
+
+export async function retryFailedEmailBatch(formData: FormData) {
+  await requireChairContext();
+  const parsed = emailBatchIdSchema.safeParse({
+    batchId: formData.get("batchId"),
+  });
+  if (!parsed.success) redirect(`${emailPath}?error=invalid-batch` as never);
+
+  await deliverEmailBatch(parsed.data.batchId, true);
+  revalidatePath(emailPath);
+  revalidatePath("/");
+  redirect(`${emailPath}?status=retried` as never);
+}
+
+async function deliverEmailBatch(batchId: string, retry: boolean) {
+  const context = await requireChairContext();
 
   const supabase = await createClient();
   const { data: settings, error: settingsError } = await supabase
@@ -131,15 +196,16 @@ export async function sendApprovedEmailBatch(formData: FormData) {
   if (settingsError || !from)
     redirect(`${emailPath}?error=batch-not-sendable` as never);
 
-  const { error: beginError } = await supabase.rpc("begin_email_batch_send", {
-    target_batch_id: parsed.data.batchId,
-  });
+  const { error: beginError } = await supabase.rpc(
+    retry ? "begin_email_batch_retry" : "begin_email_batch_send",
+    { target_batch_id: batchId },
+  );
   if (beginError) redirect(`${emailPath}?error=batch-not-sendable` as never);
 
   const { data: messages, error: messageError } = await supabase
     .from("email_messages")
     .select("id, recipient_email, final_subject, final_body, idempotency_key")
-    .eq("batch_id", parsed.data.batchId)
+    .eq("batch_id", batchId)
     .eq("selected", true)
     .eq("state", "queued");
   if (messageError || !messages?.length)
@@ -156,21 +222,19 @@ export async function sendApprovedEmailBatch(formData: FormData) {
         text: message.final_body,
         idempotencyKey: message.idempotency_key,
       });
-      await supabase.rpc("record_email_send_result", {
+      await supabase.rpc("record_email_send_result_v2", {
         target_message_id: message.id,
         provider_id: result.providerMessageId,
         succeeded: true,
+        failure_code: "",
       });
     } catch {
-      await supabase.rpc("record_email_send_result", {
+      await supabase.rpc("record_email_send_result_v2", {
         target_message_id: message.id,
         provider_id: "",
         succeeded: false,
+        failure_code: "transport_error",
       });
     }
   }
-
-  revalidatePath(emailPath);
-  revalidatePath("/");
-  redirect(`${emailPath}?status=sent` as never);
 }

@@ -5,10 +5,17 @@ import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AccessManagement } from "@/features/administration/access-management";
+import { HandoffWizard } from "@/features/administration/handoff-wizard";
+import { RosterImportForm } from "@/features/administration/roster-import-form";
+import { RoleManagement } from "@/features/administration/role-management";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
 const sections = {
+  import: [
+    "CSV roster import",
+    "Preview and validate chapter members before explicitly confirming a synthetic roster import.",
+  ],
   access: [
     "Account requests",
     "Review authenticated identities and link them to existing roster records without exposing the roster to applicants.",
@@ -54,7 +61,24 @@ export default async function AdministrationSectionPage({
           .order("created_at", { ascending: false })
           .limit(250)
       : { data: [], error: null };
-  if (auditError) throw new Error("Could not load the audit log.");
+  const { data: existingMembers, error: memberError } =
+    section === "import"
+      ? await supabase
+          .from("members")
+          .select("full_name")
+          .eq("chapter_id", context.chapterId!)
+      : { data: [], error: null };
+  const { data: semesterRows, error: semesterError } =
+    section === "export"
+      ? await supabase
+          .from("semesters")
+          .select("id, name, start_date, end_date, active")
+          .eq("chapter_id", context.chapterId!)
+          .order("start_date", { ascending: false })
+      : { data: [], error: null };
+  if (auditError || memberError || semesterError) {
+    throw new Error("Could not load administration data.");
+  }
   return (
     <ChairAppShell>
       <PageHeading
@@ -70,7 +94,52 @@ export default async function AdministrationSectionPage({
           </Link>
         }
       />
-      {section === "access" ? (
+      {section === "import" ? (
+        <RosterImportForm
+          existingMemberNames={(existingMembers ?? []).map(
+            (member) => member.full_name,
+          )}
+        />
+      ) : section === "handoff" ? (
+        <HandoffWizard error={query.error} />
+      ) : section === "roles" ? (
+        <RoleManagement status={query.status} error={query.error} />
+      ) : section === "export" ? (
+        <div className="space-y-4">
+          {(semesterRows ?? []).map((semester) => (
+            <Card key={semester.id}>
+              <CardContent className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-[var(--navy)]">
+                      {semester.name}
+                    </p>
+                    {semester.active && <Badge tone="success">Active</Badge>}
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {semester.start_date} through {semester.end_date}
+                  </p>
+                </div>
+                <a
+                  href={`/api/administration/export?semesterId=${semester.id}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--navy)] px-4 py-2.5 font-semibold text-white hover:bg-[var(--navy-light)]"
+                >
+                  Download ZIP
+                </a>
+              </CardContent>
+            </Card>
+          ))}
+          {!semesterRows?.length && (
+            <Card>
+              <CardContent>
+                <p className="text-[var(--muted)]">
+                  Create a semester before generating an export.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : section === "access" ? (
         <AccessManagement status={query.status} error={query.error} />
       ) : section === "audit" ? (
         <Card>

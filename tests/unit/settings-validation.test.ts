@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { bootstrapChapterSchema } from "@/features/setup/validation";
 import {
   deadlineOverrideSchema,
   semesterSchema,
@@ -41,5 +42,22 @@ describe("semester configuration validation", () => {
         deadlineTime: "18:30",
       }).success,
     ).toBe(true);
+  });
+});
+
+describe("first-time setup validation", () => {
+  it("requires a single-use token, complete chapter identity, and confirmation", () => {
+    const valid = {
+      bootstrapToken: "synthetic-token-at-least-sixteen",
+      fraternityName: "Sigma Nu",
+      chapterName: "Synthetic Chapter",
+      institutionName: "Test University",
+      chairName: "Synthetic Chair",
+      confirmed: "yes",
+    };
+    expect(bootstrapChapterSchema.safeParse(valid).success).toBe(true);
+    expect(
+      bootstrapChapterSchema.safeParse({ ...valid, confirmed: null }).success,
+    ).toBe(false);
   });
 });

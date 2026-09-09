@@ -18,8 +18,8 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Role-aware route guards for Chair/Admin, Member, and Proctor routes; RLS remains the data boundary
 - [x] Access-request approval, rejection, roster linking, and audited disconnection operations and UI
 - [~] Google OAuth browser verification: the production OAuth round trip, Scholarship Chair identity, session persistence, live hosted data access, and logout are verified; separate synthetic Google identities are still required for the complete browser role matrix
-- [~] One-time secure bootstrap and first-time setup wizard
-- [x] RLS and database permission coverage: 129 pgTAP checks pass locally; the foundational 91-check suite also passes against hosted development
+- [x] One-time hash-backed bootstrap, guided first-time setup checklist, and audited configuration UI
+- [x] RLS and database permission coverage: 182 pgTAP checks pass locally and against hosted development
 - [!] Complete separate-account browser checks for Awaiting Approval, Member, Proctor, and Admin after those synthetic Google test accounts are available
 
 ## Phase 2 — Member course management
@@ -63,7 +63,8 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Resend adapter and safe mock transport
 - [x] Real missing-grade recipient preview and stored batch/message status display; preview never sends automatically
 - [x] Persistent batch creation, whole-batch and individual edits, approval, explicit send, and per-message delivery state
-- [ ] Idempotency, Resend webhook delivery, failure/retry history
+- [x] Stable provider idempotency keys, signature-verified Resend webhook delivery, persisted failure history, and failed-message retry
+- [!] Configure a verified Resend sender, webhook, and server-only production credentials before changing `EMAIL_MODE` from `mock`
 
 ## Phase 8 — Analytics
 
@@ -74,20 +75,21 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Semester creation, deterministic academic weeks, activation, and deadline overrides
 - [x] Study-hour rule configuration and recalculation controls
 - [x] Account request approval/rejection/link/disconnect UI
-- [ ] CSV roster import and semester ZIP/CSV export
-- [~] Role and Proctor management
+- [x] Confirmed CSV roster import with preview, validation, duplicate protection, base-role creation, and audit summary
+- [x] Read-only semester ZIP export with 19 CSV files and a versioned JSON manifest
+- [x] Role and Proctor management with Chair-only Admin controls and active/connected account eligibility
 - [x] Append-only audit-log UI
 
 ## Phase 10 — Handoff and onboarding
 
-- [ ] Readiness checks and atomic Chair handoff wizard
-- [ ] New-Chair onboarding and in-app guide
+- [x] Readiness checks and atomic Chair handoff wizard
+- [x] First-time setup checklist and in-app Scholarship Chair guide
 
 ## Phase 11 — Production hardening
 
 - [~] Route, unit, hosted/local database, formatting, lint, strict TypeScript, and build gates are maintained during implementation
-- [ ] Accessibility, responsive, security, error/loading, and empty-state review
-- [ ] Backup/export verification and final automated test suite
+- [~] Accessibility, responsive, security, error/loading, and empty-state review; all admin routes are reachable from the mobile menu and primary forms use responsive layouts
+- [~] Backup/export verification and final automated test suite; ZIP structure is unit-tested and the full local suite is green
 - [!] Configure production Supabase, Google OAuth, Resend, Vercel, and DNS
 
 ## Hosted development verification — 2026-09-08
@@ -134,6 +136,17 @@ The remaining live authorization boundary is separate Google OAuth test identiti
 - The authenticated production session survived a full page reload and retained access to the Chair-only Administration area.
 - Added an authenticated-shell logout control for desktop and mobile. Production logout redirects to `/login`, and a subsequent request to `/administration` redirects back to `/login`.
 - The complete live role matrix remains blocked on separate synthetic Google test accounts; local and hosted pgTAP/RLS tests continue to cover those authorization boundaries without real roster or academic data.
+
+## Functional completion verification — 2026-09-09
+
+- Added a browser-side CSV preview that requires `First Name` and `Last Name`, defaults optional blank Status to Active, trims whitespace, excludes invalid/malformed/duplicate rows, and requires explicit confirmation. The trusted server boundary validates again before calling a chapter-derived RLS-aware import RPC.
+- Added read-only semester exports with schema-stable CSVs for the roster, roles, calendar, courses, submissions, grade entries, rules, assignments, overrides, sessions, alerts, email history, settings, and audit history plus a versioned JSON manifest.
+- Added real Role/Proctor management. Admins can manage Proctors; only the current Chair can manage Admins; operational grants require an active linked account; Member and Chair roles remain outside this workflow.
+- Added persisted email-template versions, exact-message review, attempt counts, failure state, failed-message retry, Resend signature verification, provider-event idempotency, and a service-role-only webhook database operation. `EMAIL_MODE=mock` remains the safe deployment default.
+- Added the hash-backed first-time setup page/checklist, handoff readiness UI, explicit atomic Chair transfer confirmation, an in-app Chair guide, skip navigation, and a complete mobile administration menu.
+- Local evidence: 89 unit tests pass across 16 files and 182 pgTAP/RLS checks pass across 13 files. The new migrations are `202609090014` through `202609090018`.
+- Hosted migration history matches the repository through `202609090018`, the hosted schema diff is clean through `202609090017`, and all 182 hosted synthetic pgTAP/RLS checks pass. The hosted run exposed and then verified the fix for a legacy cross-chapter access-request visibility flaw.
+- No real roster or academic record was imported. Hosted web deployment and production browser verification of these new workflows remain pending.
 
 ## Connected synthetic workflow verification — 2026-09-08
 

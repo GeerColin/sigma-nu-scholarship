@@ -37,13 +37,12 @@ export async function requestAccess(formData: FormData) {
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect("/login");
-  const { error } = await supabase.from("access_requests").insert({
-    profile_id: authData.user.id,
+  const { error } = await supabase.rpc("submit_access_request", {
     requested_name: parsed.data.requestedName,
     authenticated_name:
       authData.user.user_metadata.full_name ??
       authData.user.user_metadata.name ??
-      null,
+      "",
     authenticated_email: authData.user.email ?? "",
   });
   if (error) redirect("/request-access?error=not-recorded");

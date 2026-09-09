@@ -8,6 +8,7 @@ import {
   createSemester,
   overrideAcademicWeekDeadline,
 } from "@/features/settings/actions";
+import { ChapterConfiguration } from "@/features/settings/chapter-configuration";
 import { requireChairContext } from "@/lib/auth/guards";
 import { dateInTimeZone, timeInTimeZone } from "@/lib/domain/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -26,6 +27,8 @@ const statusMessages: Record<string, string> = {
   "semester-created": "The semester and its academic weeks were created.",
   "semester-activated": "The selected semester is now active.",
   "deadline-updated": "The academic-week deadline was updated.",
+  "configuration-updated": "Chapter configuration was updated and audited.",
+  "email-template-saved": "A new active email-template version was saved.",
 };
 
 function formatDeadline(value: string, timeZone: string) {
@@ -90,6 +93,8 @@ export default async function SettingsPage({
           </p>
         </div>
       )}
+
+      <ChapterConfiguration />
 
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card>

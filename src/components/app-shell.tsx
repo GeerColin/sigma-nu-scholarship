@@ -4,8 +4,10 @@ import {
   BookOpenCheck,
   Clock3,
   House,
+  CircleHelp,
   LogOut,
   Mail,
+  Menu,
   Settings,
   ShieldCheck,
   Users,
@@ -22,6 +24,7 @@ const nav = [
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Administration", href: "/administration", icon: ShieldCheck },
+  { label: "Chair Guide", href: "/guide", icon: CircleHelp },
 ] as const;
 
 type AppShellProps = {
@@ -63,6 +66,12 @@ export function AppShell({
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[16.5rem_1fr]">
+      <a
+        href="#main-content"
+        className="sr-only z-50 rounded bg-white p-3 font-semibold focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        Skip to main content
+      </a>
       <aside className="hidden border-r bg-[var(--navy)] text-white lg:flex lg:min-h-screen lg:flex-col">
         <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
           <BrandMark />
@@ -82,7 +91,7 @@ export function AppShell({
           {nav.map(({ label, href, icon: Icon }, index) => (
             <Link
               key={href}
-              href={href}
+              href={href as never}
               className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.95rem] font-semibold transition hover:bg-white/10 ${index === 0 ? "bg-white/12 text-white" : "text-white/72"}`}
             >
               <Icon aria-hidden="true" className="size-5" />
@@ -125,6 +134,29 @@ export function AppShell({
             <span className="hidden text-sm text-[var(--muted)] sm:inline">
               {periodLabel}
             </span>
+            <details className="relative lg:hidden">
+              <summary
+                aria-label="Open navigation"
+                className="grid size-10 cursor-pointer list-none place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
+              >
+                <Menu aria-hidden="true" className="size-5" />
+              </summary>
+              <nav
+                aria-label="All administration pages"
+                className="absolute top-12 right-0 z-30 grid w-64 gap-1 rounded-xl border bg-white p-2 shadow-xl"
+              >
+                {nav.map(({ label, href, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href as never}
+                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 font-semibold text-[var(--navy)] hover:bg-[var(--surface-subtle)]"
+                  >
+                    <Icon aria-hidden="true" className="size-5" />
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+            </details>
             <div
               aria-label={`${viewer.name}, ${viewer.role}`}
               className="grid size-9 place-items-center rounded-full bg-[var(--navy)] text-sm font-bold text-white"
@@ -142,7 +174,10 @@ export function AppShell({
             </form>
           </div>
         </header>
-        <main className="mx-auto max-w-[90rem] p-4 pb-24 sm:p-6 lg:p-8">
+        <main
+          id="main-content"
+          className="mx-auto max-w-[90rem] p-4 pb-24 sm:p-6 lg:p-8"
+        >
           {children}
         </main>
         <nav
@@ -152,7 +187,7 @@ export function AppShell({
           {nav.slice(0, 4).map(({ label, href, icon: Icon }) => (
             <Link
               key={href}
-              href={href}
+              href={href as never}
               className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg text-xs font-semibold text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
             >
               <Icon aria-hidden="true" className="size-5" />

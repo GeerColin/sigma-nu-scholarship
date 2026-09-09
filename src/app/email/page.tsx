@@ -8,11 +8,13 @@ import {
   editEmailBatch,
   editEmailMessage,
   prepareEmailBatch,
+  retryFailedEmailBatch,
   sendApprovedEmailBatch,
 } from "@/features/email/actions";
 import { getMemberDirectory } from "@/features/members/queries";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { emailTemplateDefaults } from "@/lib/email/defaults";
 
 const statusMessages: Record<string, string> = {
   prepared: "The email batch was prepared as a draft. Nothing was sent.",
@@ -20,27 +22,14 @@ const statusMessages: Record<string, string> = {
   "message-edited": "The selected member email was updated and audited.",
   approved: "The batch was approved. It has not been sent yet.",
   sent: "The approved batch was processed by the configured email transport.",
+  retried:
+    "Failed messages were retried using their original idempotency keys.",
 };
 
 const batchLabels: Record<string, string> = {
   missing_grade_reminder: "Missing-grade reminders",
   study_hour_assignment: "Study-hour assignments",
   academic_alert: "Chair academic alerts",
-};
-
-const batchTemplates: Record<string, { subject: string; body: string }> = {
-  missing_grade_reminder: {
-    subject: "{{semesterName}} {{weekLabel}} grade reminder",
-    body: "Hello {{memberName}},\n\nYour weekly scholarship check-in for {{weekLabel}} is missing. Please submit it even if the {{deadline}} deadline has passed. Detailed grades are not included in this reminder.",
-  },
-  study_hour_assignment: {
-    subject: "{{weekLabel}} study-hour assignment",
-    body: "Hello {{memberName}},\n\nYour {{weekLabel}} study-hour requirement is {{requiredHours}} hours. Completed: {{completedHours}} hours. Remaining: {{remainingHours}} hours.",
-  },
-  academic_alert: {
-    subject: "Academic alert requires review",
-    body: "An academic alert for {{memberName}} in {{weekLabel}} requires review in the secure scholarship dashboard. Detailed grades are intentionally omitted from this email.",
-  },
 };
 
 export default async function EmailPage({
@@ -60,6 +49,7 @@ export default async function EmailPage({
     { data: batches, error: batchError },
     { data: messages, error: messageError },
     { count: openAlerts, error: alertError },
+    { data: activeTemplates, error: templateError },
   ] = await Promise.all([
     supabase
       .from("email_batches")
@@ -71,7 +61,7 @@ export default async function EmailPage({
     supabase
       .from("email_messages")
       .select(
-        "id, batch_id, recipient_email, recipient_name, final_subject, final_body, state, selected, template_context",
+        "id, batch_id, recipient_email, recipient_name, final_subject, final_body, state, selected, template_context, send_attempt_count, last_send_error",
       )
       .eq("chapter_id", context.chapterId!)
       .order("created_at"),
@@ -86,8 +76,13 @@ export default async function EmailPage({
           .eq("grade_submissions.week_id", period.currentWeek.id)
           .is("acknowledged_at", null)
       : Promise.resolve({ count: 0, error: null }),
+    supabase
+      .from("email_templates")
+      .select("template_type, subject_template, body_template, version")
+      .eq("chapter_id", context.chapterId!)
+      .eq("active", true),
   ]);
-  if (batchError || messageError || alertError) {
+  if (batchError || messageError || alertError || templateError) {
     throw new Error("Could not load the email center.");
   }
 
@@ -194,9 +189,16 @@ export default async function EmailPage({
         <div className="divide-y">
           {(batches ?? []).map((batch) => {
             const rows = rowsForBatch(batch.id);
-            const template =
-              batchTemplates[batch.batch_type] ??
-              batchTemplates.academic_alert!;
+            const savedTemplate = (activeTemplates ?? []).find(
+              (item) => item.template_type === batch.batch_type,
+            );
+            const template = savedTemplate
+              ? {
+                  subject: savedTemplate.subject_template,
+                  body: savedTemplate.body_template,
+                }
+              : (emailTemplateDefaults[batch.batch_type] ??
+                emailTemplateDefaults.academic_alert!);
             const selected = rows.filter((message) => message.selected).length;
             const sent = rows.filter((message) =>
               ["sent", "delivered"].includes(message.state),
@@ -311,6 +313,16 @@ export default async function EmailPage({
                           </div>
                           <Badge>{message.state}</Badge>
                         </div>
+                        {(message.send_attempt_count > 0 ||
+                          message.last_send_error) && (
+                          <p className="text-xs text-[var(--muted)]">
+                            {message.send_attempt_count} send attempt
+                            {message.send_attempt_count === 1 ? "" : "s"}
+                            {message.last_send_error
+                              ? ` · Last result: ${message.last_send_error.replaceAll("_", " ")}`
+                              : ""}
+                          </p>
+                        )}
                         <label className="flex items-center gap-2 text-sm font-semibold">
                           <input
                             type="checkbox"
@@ -365,6 +377,14 @@ export default async function EmailPage({
                   <form action={sendApprovedEmailBatch} className="mt-4">
                     <input type="hidden" name="batchId" value={batch.id} />
                     <Button type="submit">Send approved batch</Button>
+                  </form>
+                )}
+                {batch.state === "partial_failure" && failed > 0 && (
+                  <form action={retryFailedEmailBatch} className="mt-4">
+                    <input type="hidden" name="batchId" value={batch.id} />
+                    <Button type="submit">
+                      Retry {failed} failed messages
+                    </Button>
                   </form>
                 )}
               </article>

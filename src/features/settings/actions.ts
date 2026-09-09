@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   activateSemesterSchema,
+  chapterConfigurationSchema,
   deadlineOverrideSchema,
+  saveEmailTemplateSchema,
   semesterSchema,
 } from "@/features/settings/validation";
 import { requireChairContext } from "@/lib/auth/guards";
@@ -80,4 +82,48 @@ export async function overrideAcademicWeekDeadline(formData: FormData) {
   revalidatePath("/");
   revalidatePath(settingsPath);
   redirect(`${settingsPath}?status=deadline-updated`);
+}
+
+export async function updateChapterConfiguration(formData: FormData) {
+  await requireChairContext();
+  const parsed = chapterConfigurationSchema.safeParse({
+    percentageAlertDrop: formData.get("percentageAlertDrop"),
+    letterAlertSteps: formData.get("letterAlertSteps"),
+    emailFrom: formData.get("emailFrom"),
+    emailReplyTo: formData.get("emailReplyTo"),
+  });
+  if (!parsed.success) redirect(`${settingsPath}?error=invalid-configuration`);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_chapter_configuration", {
+    percentage_drop: parsed.data.percentageAlertDrop,
+    letter_steps: parsed.data.letterAlertSteps,
+    sender_identity: parsed.data.emailFrom,
+    reply_address: parsed.data.emailReplyTo,
+  });
+  if (error) redirect(`${settingsPath}?error=configuration-not-updated`);
+  revalidatePath(settingsPath);
+  revalidatePath("/setup");
+  redirect(`${settingsPath}?status=configuration-updated`);
+}
+
+export async function saveEmailTemplate(formData: FormData) {
+  await requireChairContext();
+  const parsed = saveEmailTemplateSchema.safeParse({
+    templateType: formData.get("templateType"),
+    name: formData.get("name"),
+    subject: formData.get("subject"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) redirect(`${settingsPath}?error=invalid-email-template`);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_email_template", {
+    requested_template_type: parsed.data.templateType,
+    template_name: parsed.data.name,
+    subject_template: parsed.data.subject,
+    body_template: parsed.data.body,
+  });
+  if (error) redirect(`${settingsPath}?error=email-template-not-saved`);
+  revalidatePath(settingsPath);
+  revalidatePath("/email");
+  redirect(`${settingsPath}?status=email-template-saved`);
 }

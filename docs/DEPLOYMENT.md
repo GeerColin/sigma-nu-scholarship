@@ -24,7 +24,9 @@ Keep outbound email in mock mode until Resend webhook verification, delivery his
 | `EMAIL_FROM`                           | Production and Preview | Server-only | Synthetic sender while mock; later an address on a Resend-verified domain |
 | `EMAIL_REPLY_TO`                       | Optional               | Server-only | A monitored chapter inbox                                                 |
 
-Do not configure `SUPABASE_SECRET_KEY`, `BOOTSTRAP_TOKEN_SHA256`, `RESEND_API_KEY`, or `RESEND_WEBHOOK_SECRET` in the current deployment. No current runtime path requires the Supabase secret key, the chapter is already initialized, and real email delivery remains disabled. `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` and `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET` are local-Supabase-CLI variables and must not be placed in Vercel; hosted provider credentials remain in the Supabase Dashboard.
+Do not configure `SUPABASE_SECRET_KEY`, `RESEND_API_KEY`, or `RESEND_WEBHOOK_SECRET` while the current deployment remains in mock email mode. The Resend webhook route is dormant without its signing secret, and no ordinary Member/Admin/Chair application request uses the Supabase secret key. `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` and `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET` are local-Supabase-CLI variables and must not be placed in Vercel; hosted provider credentials remain in the Supabase Dashboard.
+
+When real email is deliberately enabled, add `EMAIL_MODE=production`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, and `SUPABASE_SECRET_KEY` as server-only Production variables. Configure the exact Resend webhook URL `https://sigma-nu-scholarship.vercel.app/api/webhooks/resend` and subscribe to email delivery events. The Supabase secret key is used only after webhook signature verification to call the service-role-only delivery recorder.
 
 ## Hosted OAuth URL configuration
 
@@ -52,7 +54,7 @@ Keep the Authorized redirect URI set to the hosted Supabase callback shown in Au
 5. Enable Google in Supabase Authentication -> Sign In / Providers -> Google and enter the Google Client ID and Client Secret there. Add the application's `/auth/callback` URL to Supabase Authentication -> URL Configuration -> Redirect URLs and set the correct Site URL.
 6. Create a chapter-controlled Resend account, verify the sender domain, and create an API key and webhook signing secret.
 7. Create a Vercel project connected to the repository and add the variables listed in `.env.example`.
-8. Generate a one-time bootstrap token with the documented administrative script/secure deployment flow. Configure only its hash server-side, use it once, and remove it after initialization.
+8. Generate a high-entropy one-time bootstrap token outside the repository. Insert only its SHA-256 hash and expiration into `public.bootstrap_tokens` through an authorized Supabase administrative session. Give the plaintext token to the initial Chair through a secure channel; the `/setup` wizard consumes it once. No bootstrap token environment variable is used.
 9. Complete the in-app setup wizard and readiness checks.
 
 Supabase Free is supported. Production should schedule application-level semester exports. Paid Supabase plans may provide stronger managed backup options but are not required.

@@ -3,7 +3,7 @@
 This system contains sensitive academic data. Supabase RLS is the primary data boundary; authenticated UI state is not authorization.
 
 - Google OAuth only; authentication does not imply chapter membership.
-- Unlinked profiles can create/read only their own access request.
+- Unlinked profiles submit through a trusted RPC and can read only their own access request. The private deployment configuration assigns the request's chapter; callers cannot choose a different tenant.
 - All policies scope access through approved member/profile linkage and chapter roles.
 - Browser code and ordinary authenticated SSR/server operations use only `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Signed-in user JWTs continue to resolve to the `authenticated` Postgres role, so RLS remains authoritative.
 - `SUPABASE_SECRET_KEY` must be a current `sb_secret_...` key. It maps to `service_role`, bypasses RLS, and is available only through the explicitly server-only privileged client. It is never used for ordinary Member, Proctor, Admin, or Scholarship Chair requests.
@@ -13,6 +13,7 @@ This system contains sensitive academic data. Supabase RLS is the primary data b
 - Bootstrap secrets are random, expire, are stored only as hashes, and become unusable after successful initialization.
 - Audit rows cannot be updated/deleted by application roles.
 - Email webhooks verify signatures and are idempotent.
+- The Resend webhook is the only current consumer of the RLS-bypassing client. Signature verification happens before client creation, and the database recorder is executable only by `service_role`.
 - Academic records have no public sharing path; logs and user-facing errors omit sensitive/provider detail.
 - Production and development use separate projects and data. Demo data is synthetic.
 
