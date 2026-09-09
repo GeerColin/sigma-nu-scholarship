@@ -19,7 +19,7 @@ describe("email template rendering", () => {
       ),
     ).toEqual({
       subject: "Week 5 study hours",
-      body: "Hi Alex, you have 1 hours remaining.",
+      body: "Hi Alex, you have 1 hour remaining.",
     });
   });
 

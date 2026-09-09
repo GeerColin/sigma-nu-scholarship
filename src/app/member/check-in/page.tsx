@@ -8,6 +8,7 @@ import {
 } from "@/features/grades/weekly-check-in-form";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireApprovedMemberContext } from "@/lib/auth/guards";
+import { submissionStatusLabel } from "@/lib/domain/submissions";
 import { createClient } from "@/lib/supabase/server";
 
 function formatDeadline(value: string, timeZone: string) {
@@ -30,6 +31,8 @@ export default async function CheckInPage({
   let courses: CheckInCourse[] = [];
   let currentSubmission: {
     original_timing: "on_time" | "late";
+    revision_timing: "on_time" | "late";
+    revision_number: number;
     original_submitted_at: string;
     estimated_gpa_snapshot: number | string | null;
     included_course_count: number;
@@ -61,7 +64,7 @@ export default async function CheckInPage({
       supabase
         .from("grade_submissions")
         .select(
-          "original_timing, original_submitted_at, estimated_gpa_snapshot, included_course_count, active_course_count, grade_entries(course_id, reported_value)",
+          "original_timing, revision_timing, revision_number, original_submitted_at, estimated_gpa_snapshot, included_course_count, active_course_count, grade_entries(course_id, reported_value)",
         )
         .eq("member_id", context.memberId!)
         .eq("week_id", period.currentWeek.id)
@@ -84,6 +87,8 @@ export default async function CheckInPage({
     currentSubmission = current
       ? {
           original_timing: current.original_timing,
+          revision_timing: current.revision_timing,
+          revision_number: current.revision_number,
           original_submitted_at: current.original_submitted_at,
           estimated_gpa_snapshot: current.estimated_gpa_snapshot,
           included_course_count: current.included_course_count,
@@ -193,9 +198,11 @@ export default async function CheckInPage({
                           : "warning"
                       }
                     >
-                      {currentSubmission.original_timing === "on_time"
-                        ? "On time"
-                        : "Late"}
+                      {submissionStatusLabel(
+                        currentSubmission.original_timing,
+                        currentSubmission.revision_timing,
+                        currentSubmission.revision_number,
+                      )}
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-[var(--muted)]">

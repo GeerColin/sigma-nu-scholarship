@@ -45,12 +45,14 @@ export function renderTemplateText(
   text: string,
   context: EmailTemplateContext,
 ) {
-  return text.replace(tokenPattern, (_, token: keyof EmailTemplateContext) => {
-    const value = context[token];
-    if (value === undefined || value === null)
-      throw new Error(`Missing email template value: ${token}`);
-    return String(value);
-  });
+  return text
+    .replace(tokenPattern, (_, token: keyof EmailTemplateContext) => {
+      const value = context[token];
+      if (value === undefined || value === null)
+        throw new Error(`Missing email template value: ${token}`);
+      return String(value);
+    })
+    .replace(/\b1 hours\b/g, "1 hour");
 }
 
 export function renderEmailTemplate(

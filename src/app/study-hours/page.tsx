@@ -507,19 +507,30 @@ export default async function StudyHoursPage({
                                       name="assignmentId"
                                       value={member.assignmentId}
                                     />
-                                    <p className="text-sm text-[var(--muted)]">
-                                      Proposed requirement:{" "}
-                                      {member.proposedHours ?? "—"} hr
-                                    </p>
+                                    <div className="space-y-1 text-sm text-[var(--muted)]">
+                                      <p>
+                                        Previously assigned:{" "}
+                                        {member.requiredMinutes === null
+                                          ? "—"
+                                          : hourValue(
+                                              member.requiredMinutes,
+                                            )}{" "}
+                                        hr
+                                      </p>
+                                      <p>
+                                        New calculation:{" "}
+                                        {member.proposedHours ?? "—"} hr
+                                      </p>
+                                    </div>
                                     <select
                                       name="decision"
                                       className="min-h-11 w-full rounded-xl border bg-white px-3"
                                     >
-                                      <option value="update">
-                                        Use proposed requirement
-                                      </option>
                                       <option value="keep">
-                                        Keep frozen requirement
+                                        Keep Existing
+                                      </option>
+                                      <option value="update">
+                                        Update Assignment
                                       </option>
                                     </select>
                                     <input

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireApprovedMemberContext } from "@/lib/auth/guards";
+import { submissionStatusLabel } from "@/lib/domain/submissions";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function MemberSectionPage({
@@ -22,7 +23,7 @@ export default async function MemberSectionPage({
     ? await supabase
         .from("grade_submissions")
         .select(
-          "id, week_id, revision_number, original_submitted_at, original_timing, estimated_gpa_snapshot, included_course_count, active_course_count, academic_weeks(label, sequence_number)",
+          "id, week_id, revision_number, original_submitted_at, original_timing, revision_timing, estimated_gpa_snapshot, included_course_count, active_course_count, academic_weeks(label, sequence_number)",
         )
         .eq("member_id", context.memberId!)
         .eq("is_current", true)
@@ -208,9 +209,11 @@ export default async function MemberSectionPage({
                             : "warning"
                         }
                       >
-                        {submission.original_timing === "on_time"
-                          ? "On time"
-                          : "Late"}
+                        {submissionStatusLabel(
+                          submission.original_timing,
+                          submission.revision_timing,
+                          submission.revision_number,
+                        )}
                       </Badge>
                       <p className="mt-1 font-bold text-[var(--navy)]">
                         Estimated {period?.semester.name ?? "semester"} GPA:{" "}

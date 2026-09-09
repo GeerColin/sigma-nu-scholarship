@@ -19,7 +19,7 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Access-request approval, rejection, roster linking, and audited disconnection operations and UI
 - [~] Google OAuth browser verification: the existing Scholarship Chair session, identity, persistence, and live hosted data access are verified; separate synthetic Google identities are still required for the complete browser role matrix
 - [~] One-time secure bootstrap and first-time setup wizard
-- [x] RLS and database permission coverage: 91 pgTAP checks pass locally and against hosted development
+- [x] RLS and database permission coverage: 129 pgTAP checks pass locally; the foundational 91-check suite also passes against hosted development
 - [!] Complete separate-account browser checks for Awaiting Approval, Member, Proctor, and Admin after those synthetic Google test accounts are available
 
 ## Phase 2 — Member course management
@@ -40,7 +40,7 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 
 - [x] Live attention dashboard, member directory, member detail, and This Week operations
 - [x] Search and Active/Inactive/Alumni/Missing Grades/Incomplete Hours/Academic Alert/GPA filters
-- [~] Academic-alert and custom-grading data are displayed; acknowledgment and review mutation UI remains
+- [x] Academic-alert acknowledgment and custom-grading review UI, with required notes and audit records
 
 ## Phase 5 — Study hours
 
@@ -62,12 +62,12 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 
 - [x] Resend adapter and safe mock transport
 - [x] Real missing-grade recipient preview and stored batch/message status display; preview never sends automatically
-- [~] Persistent batch creation, individual edit, approval, and send workflow
+- [x] Persistent batch creation, whole-batch and individual edits, approval, explicit send, and per-message delivery state
 - [ ] Idempotency, Resend webhook delivery, failure/retry history
 
 ## Phase 8 — Analytics
 
-- [~] Live chapter submission-rate and estimated-GPA charts are implemented; deeper member/course/study-hour analytics remain
+- [x] Live submission-rate, chapter GPA, member movement, percentage-course movement, and study-hour analytics
 
 ## Phase 9 — Settings and administration
 
@@ -75,7 +75,8 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Study-hour rule configuration and recalculation controls
 - [x] Account request approval/rejection/link/disconnect UI
 - [ ] CSV roster import and semester ZIP/CSV export
-- [ ] Role/proctor management and audit-log UI
+- [~] Role and Proctor management
+- [x] Append-only audit-log UI
 
 ## Phase 10 — Handoff and onboarding
 
@@ -99,7 +100,7 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - Live browser verification passed for synthetic semester/week generation, course creation/editing, initial check-in, immutable grade revision, This Week counts, rule setup, assignment backfill, study-hour override, session logging, and Chair correction.
 - The deadline override inputs were verified to reflect the stored deadline date/time in the semester timezone.
 
-Exact hosted development counts at the verification snapshot:
+Baseline hosted development counts before the connected-workflow fixture:
 
 | Table                  | Rows |
 | ---------------------- | ---: |
@@ -125,3 +126,18 @@ Exact hosted development counts at the verification snapshot:
 The semester, course, grades, study-hour policy, override, and session records are explicitly synthetic development data. No real roster or real academic record has been imported.
 
 The remaining live authorization boundary is separate Google OAuth test identities. Add synthetic test-account emails to Google Auth Platform when the app remains in Testing, then use separate browser profiles/sessions to create and exercise Awaiting Approval, Member, Proctor, and Admin accounts. Do not place credentials or recovery codes in repository files or chat.
+
+## Connected synthetic workflow verification — 2026-09-08
+
+- Loaded the additive, idempotent `supabase/fixtures/connected_workflow.sql` fixture into the hosted development project. It uses only reserved `.invalid` email addresses and explicitly synthetic names, courses, grades, and sessions. No real roster or academic record was imported.
+- Added two non-login synthetic auth actors, without passwords or external identities, so member and Proctor RPC behavior could be exercised as the `authenticated` database role through the normal RLS-aware identity functions.
+- Verified 7 synthetic members, 11 synthetic courses, 13 immutable submission records, and 23 grade-entry snapshots. Current synthetic Week 3 status is 5 on time, 1 late, and 1 missing.
+- Verified all four grading types. Custom / Other remained excluded from GPA until the Chair recorded an audited review; the reviewed Synthetic S/U course remains excluded by the chosen disposition.
+- Verified a frozen Blake assignment held at 1 hour after an authenticated revision changed GPA from 4.00 to 2.00 and proposed 4 hours. The Chair UI raised `Review required`, exposed Keep Existing and Update Assignment, and the audited Update decision produced a frozen 4-hour assignment.
+- Verified Synthetic Gray Proctor edited their own current-week session and added a session through authenticated Proctor RPCs. The final persisted total is 3 sessions / 180 minutes, and Study Hours shows 3 of 3 hours complete.
+- Verified the alert workflow from a 20-point percentage drop through Chair email draft review and audited acknowledgment. The final alert state is 1 total, 1 acknowledged, 0 open.
+- In mock email mode, explicitly approved and processed 5 study-hour assignment messages, 1 missing-grade reminder, and 1 Chair alert with zero failures. Hosted persistence contains 4 batches / 12 messages total; 7 are marked sent and the intentionally retained second study-hour draft contains the other 5.
+- Cross-screen browser checks agree: Dashboard and This Week show 6 on time / 1 late / 1 missing across all 8 active rows; Analytics shows 75% on time, 13% late, 13% missing, 17% study-hour completion, and 16 required / 3.75 completed hours; Members and Study Hours show Gray complete and Blake at 2.00 GPA / 4 frozen hours.
+- Reopened Study Hours in a fresh browser tab and reloaded member details from Supabase to verify persistence. The audit UI contains the grade revision, freeze, frozen-assignment decision, override and removal, Proctor edit/add, custom grading review, alert acknowledgment, batch approvals, and message sends.
+- Hosted migration history is current through `202609080013`. The repository verifier is `supabase/fixtures/verify_connected_workflow.sql`; the local connected-workflow pgTAP suite adds 38 checks to the existing authorization coverage.
+- The only intentionally deferred item is the complete separate-browser Google OAuth role matrix, as documented above. The database/RLS suite still covers those authorization boundaries with synthetic identities.

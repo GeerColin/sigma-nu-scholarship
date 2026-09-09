@@ -1,5 +1,17 @@
 export type SubmissionTiming = "on_time" | "late";
 
+export function submissionStatusLabel(
+  originalTiming: SubmissionTiming,
+  latestRevisionTiming: SubmissionTiming,
+  revisionNumber = 1,
+) {
+  if (originalTiming === "late") return "Submitted late";
+  if (revisionNumber > 1 && latestRevisionTiming === "late") {
+    return "Submitted on time \u2014 edited after deadline";
+  }
+  return "Submitted on time";
+}
+
 export type SubmissionStatus = {
   originalTiming: SubmissionTiming;
   latestRevisionTiming: SubmissionTiming;

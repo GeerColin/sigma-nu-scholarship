@@ -61,7 +61,7 @@ export default async function AdministrationPage() {
       title: "Audit log",
       detail: (auditCount ?? 0) + " append-only events",
       href: "/administration/audit",
-      ready: false,
+      ready: true,
     },
     {
       title: "Scholarship Chair handoff",

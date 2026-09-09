@@ -2,11 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   detectAcademicAlert,
   determineSubmissionStatus,
+  submissionStatusLabel,
 } from "@/lib/domain/submissions";
 
 const deadline = new Date("2026-09-12T03:59:00.000Z");
 
 describe("submission timing", () => {
+  it("labels stored on-time submissions revised after the deadline", () => {
+    expect(submissionStatusLabel("on_time", "late", 2)).toBe(
+      "Submitted on time \u2014 edited after deadline",
+    );
+  });
+
   it("records an on-time submission", () => {
     expect(
       determineSubmissionStatus(

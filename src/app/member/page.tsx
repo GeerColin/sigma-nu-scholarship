@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireApprovedMemberContext } from "@/lib/auth/guards";
+import { submissionStatusLabel } from "@/lib/domain/submissions";
 import { createClient } from "@/lib/supabase/server";
 
 function hours(minutes: number) {
@@ -19,6 +20,8 @@ export default async function MemberHomePage() {
   const supabase = await createClient();
   let submission: {
     original_timing: "on_time" | "late";
+    revision_timing: "on_time" | "late";
+    revision_number: number;
     original_submitted_at: string;
     estimated_gpa_snapshot: number | string | null;
     included_course_count: number;
@@ -33,7 +36,7 @@ export default async function MemberHomePage() {
         supabase
           .from("grade_submissions")
           .select(
-            "original_timing, original_submitted_at, estimated_gpa_snapshot, included_course_count, active_course_count",
+            "original_timing, revision_timing, revision_number, original_submitted_at, estimated_gpa_snapshot, included_course_count, active_course_count",
           )
           .eq("member_id", context.memberId!)
           .eq("week_id", period.currentWeek.id)
@@ -157,9 +160,11 @@ export default async function MemberHomePage() {
                       timeStyle: "short",
                     }).format(new Date(submission.original_submitted_at)) +
                     " · " +
-                    (submission.original_timing === "on_time"
-                      ? "On time"
-                      : "Late")
+                    submissionStatusLabel(
+                      submission.original_timing,
+                      submission.revision_timing,
+                      submission.revision_number,
+                    )
                   : "Late submissions remain available."}
               </p>
             </CardContent>

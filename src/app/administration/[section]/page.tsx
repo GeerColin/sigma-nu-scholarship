@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AccessManagement } from "@/features/administration/access-management";
 import { requireChairContext } from "@/lib/auth/guards";
+import { createClient } from "@/lib/supabase/server";
 
 const sections = {
   access: [
@@ -35,11 +37,24 @@ export default async function AdministrationSectionPage({
   params: Promise<{ section: string }>;
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
-  await requireChairContext();
+  const context = await requireChairContext();
   const { section } = await params;
   const query = await searchParams;
   const content = sections[section as keyof typeof sections];
   if (!content) notFound();
+  const supabase = await createClient();
+  const { data: auditRows, error: auditError } =
+    section === "audit"
+      ? await supabase
+          .from("audit_log")
+          .select(
+            "id, action, entity_type, entity_id, reason, created_at, profiles(display_name, email)",
+          )
+          .eq("chapter_id", context.chapterId!)
+          .order("created_at", { ascending: false })
+          .limit(250)
+      : { data: [], error: null };
+  if (auditError) throw new Error("Could not load the audit log.");
   return (
     <ChairAppShell>
       <PageHeading
@@ -57,6 +72,48 @@ export default async function AdministrationSectionPage({
       />
       {section === "access" ? (
         <AccessManagement status={query.status} error={query.error} />
+      ) : section === "audit" ? (
+        <Card>
+          <div className="divide-y">
+            {(auditRows ?? []).map((row) => {
+              const actor = row.profiles as unknown as {
+                display_name: string | null;
+                email: string;
+              } | null;
+              return (
+                <article key={row.id} className="p-5">
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <p className="font-bold text-[var(--navy)]">
+                        {row.action.replaceAll("_", " ")}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {row.entity_type.replaceAll("_", " ")} · {row.entity_id}
+                      </p>
+                      {row.reason && (
+                        <p className="mt-2 text-sm">{row.reason}</p>
+                      )}
+                    </div>
+                    <div className="sm:text-right">
+                      <Badge>{actor?.display_name || "System"}</Badge>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        {new Intl.DateTimeFormat(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(row.created_at))}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+            {!auditRows?.length && (
+              <p className="p-8 text-center text-[var(--muted)]">
+                No audit events are available.
+              </p>
+            )}
+          </div>
+        </Card>
       ) : (
         <Card>
           <CardContent>

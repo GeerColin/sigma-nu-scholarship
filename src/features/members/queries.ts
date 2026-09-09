@@ -16,10 +16,13 @@ export type MemberDirectoryItem = {
   name: string;
   status: "active" | "inactive" | "alumni";
   connected: boolean;
+  notificationEmail: string | null;
   roles: string[];
   estimatedGpa: number | null;
   submissionStatus: "on_time" | "late" | "missing" | "not_configured";
   submittedAt: string | null;
+  revisionTiming: "on_time" | "late" | null;
+  revisionNumber: number | null;
   requiredMinutes: number | null;
   completedMinutes: number;
   hasAcademicAlert: boolean;
@@ -38,7 +41,9 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
 
   const { data: memberRows, error: memberError } = await supabase
     .from("members")
-    .select("id, full_name, status, profile_id, member_roles(role, active)")
+    .select(
+      "id, full_name, status, profile_id, notification_email, member_roles(role, active)",
+    )
     .eq("chapter_id", context.chapterId!)
     .order("full_name");
   if (memberError) throw new Error("Could not load members.");
@@ -51,7 +56,7 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
         ? supabase
             .from("grade_submissions")
             .select(
-              "member_id, estimated_gpa_snapshot, original_timing, original_submitted_at",
+              "member_id, estimated_gpa_snapshot, original_timing, revision_timing, revision_number, original_submitted_at",
             )
             .eq("week_id", weekId)
             .eq("is_current", true)
@@ -120,6 +125,7 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
       name: member.full_name,
       status: member.status,
       connected: Boolean(member.profile_id),
+      notificationEmail: member.notification_email,
       roles: (member.member_roles as Array<{ role: string; active: boolean }>)
         .filter((role) => role.active)
         .map((role) => role.role),
@@ -136,6 +142,8 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
             ? "late"
             : "missing",
       submittedAt: submission?.original_submitted_at ?? null,
+      revisionTiming: submission?.revision_timing ?? null,
+      revisionNumber: submission?.revision_number ?? null,
       requiredMinutes:
         assignment?.final_hours === null ||
         assignment?.final_hours === undefined
@@ -198,6 +206,7 @@ export type MemberDetail = {
   name: string;
   status: "active" | "inactive" | "alumni";
   connectedEmail: string | null;
+  notificationEmail: string | null;
   connectedName: string | null;
   roles: string[];
   courses: Array<{
@@ -207,6 +216,12 @@ export type MemberDetail = {
     gradingType: string;
     archived: boolean;
     latestValue: unknown;
+    customDescription: string | null;
+    customReview: {
+      treatment: "exclude" | "pass_fail" | "custom_conversion";
+      reason: string;
+      reviewedAt: string;
+    } | null;
   }>;
   submissions: Array<{
     id: string;
@@ -215,6 +230,8 @@ export type MemberDetail = {
     submittedAt: string;
     originalSubmittedAt: string;
     timing: "on_time" | "late";
+    revisionTiming: "on_time" | "late";
+    isCurrent: boolean;
     estimatedGpa: number | null;
     includedCourseCount: number;
     activeCourseCount: number;
@@ -257,7 +274,7 @@ export async function getMemberDetail(memberId: string) {
   const { data: member, error: memberError } = await supabase
     .from("members")
     .select(
-      "id, full_name, status, profile_id, profiles(email, display_name), member_roles(role, active)",
+      "id, full_name, status, profile_id, notification_email, profiles(email, display_name), member_roles(role, active)",
     )
     .eq("id", memberId)
     .eq("chapter_id", context.chapterId!)
@@ -273,12 +290,13 @@ export async function getMemberDetail(memberId: string) {
     assignmentResult,
     sessionsResult,
     alertsResult,
+    customReviewsResult,
   ] = await Promise.all([
     semesterId
       ? supabase
           .from("courses")
           .select(
-            "id, name, credit_hours, grading_type, archived_at, created_at",
+            "id, name, credit_hours, grading_type, custom_grading_description, archived_at, created_at",
           )
           .eq("member_id", memberId)
           .eq("semester_id", semesterId)
@@ -288,10 +306,9 @@ export async function getMemberDetail(memberId: string) {
       ? supabase
           .from("grade_submissions")
           .select(
-            "id, week_id, revision_number, submitted_at, original_submitted_at, original_timing, estimated_gpa_snapshot, included_course_count, active_course_count, academic_weeks(label, sequence_number), grade_entries(course_id, course_name_snapshot, reported_value)",
+            "id, week_id, revision_number, submitted_at, original_submitted_at, original_timing, revision_timing, is_current, estimated_gpa_snapshot, included_course_count, active_course_count, academic_weeks(label, sequence_number), grade_entries(course_id, course_name_snapshot, reported_value)",
           )
           .eq("member_id", memberId)
-          .eq("is_current", true)
           .order("submitted_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
     weekId
@@ -318,6 +335,11 @@ export async function getMemberDetail(memberId: string) {
       .select("id, alert_type, details, created_at, acknowledged_at")
       .eq("member_id", memberId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("custom_grading_reviews")
+      .select("course_id, treatment, reason, created_at")
+      .eq("chapter_id", context.chapterId!)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (
@@ -325,7 +347,8 @@ export async function getMemberDetail(memberId: string) {
     submissionsResult.error ||
     assignmentResult.error ||
     sessionsResult.error ||
-    alertsResult.error
+    alertsResult.error ||
+    customReviewsResult.error
   ) {
     throw new Error("Could not load the member’s academic details.");
   }
@@ -344,6 +367,8 @@ export async function getMemberDetail(memberId: string) {
       submittedAt: submission.submitted_at,
       originalSubmittedAt: submission.original_submitted_at,
       timing: submission.original_timing,
+      revisionTiming: submission.revision_timing,
+      isCurrent: submission.is_current,
       estimatedGpa:
         submission.estimated_gpa_snapshot === null
           ? null
@@ -365,11 +390,27 @@ export async function getMemberDetail(memberId: string) {
   });
 
   const latestEntries = new Map(
-    (submissions[0]?.entries ?? []).map((entry) => [
-      entry.courseId,
-      entry.reportedValue,
-    ]),
+    (submissions.find((submission) => submission.isCurrent)?.entries ?? []).map(
+      (entry) => [entry.courseId, entry.reportedValue],
+    ),
   );
+  const customReviews = new Map<
+    string,
+    {
+      treatment: "exclude" | "pass_fail" | "custom_conversion";
+      reason: string;
+      reviewedAt: string;
+    }
+  >();
+  for (const review of customReviewsResult.data ?? []) {
+    if (!customReviews.has(review.course_id)) {
+      customReviews.set(review.course_id, {
+        treatment: review.treatment,
+        reason: review.reason,
+        reviewedAt: review.created_at,
+      });
+    }
+  }
   const completedMinutes = (sessionsResult.data ?? []).reduce(
     (total, session) => total + session.duration_minutes,
     0,
@@ -385,6 +426,7 @@ export async function getMemberDetail(memberId: string) {
     name: member.full_name,
     status: member.status,
     connectedEmail: profile?.email ?? null,
+    notificationEmail: member.notification_email,
     connectedName: profile?.display_name ?? null,
     roles: (member.member_roles as Array<{ role: string; active: boolean }>)
       .filter((role) => role.active)
@@ -396,6 +438,8 @@ export async function getMemberDetail(memberId: string) {
       gradingType: course.grading_type,
       archived: Boolean(course.archived_at),
       latestValue: latestEntries.get(course.id) ?? null,
+      customDescription: course.custom_grading_description,
+      customReview: customReviews.get(course.id) ?? null,
     })),
     submissions,
     studyHours: assignment
