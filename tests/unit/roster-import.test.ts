@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   confirmedRosterRows,
@@ -6,6 +8,20 @@ import {
 import { rosterImportSchema } from "@/features/administration/roster-import-validation";
 
 describe("CSV roster import", () => {
+  it("uses an explicit submit button for the confirmed import action", () => {
+    const form = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/administration/roster-import-form.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(form).toMatch(
+      /<Button\s+type="submit"\s+disabled=\{!confirmed \|\| readyRows\.length === 0 \|\| pending\}/,
+    );
+  });
+
   it("parses valid rows, trims names, and defaults blank status to Active", () => {
     const preview = prepareRosterImport(
       "First Name,Last Name,Status\r\n  Ada  , Lovelace ,\r\nGrace,Hopper,Inactive",

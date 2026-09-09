@@ -165,6 +165,7 @@ export function RosterImportForm({
                 </span>
               </label>
               <Button
+                type="submit"
                 disabled={!confirmed || readyRows.length === 0 || pending}
               >
                 {pending ? "Importing…" : `Import ${readyRows.length} members`}
