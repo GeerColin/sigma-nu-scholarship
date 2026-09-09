@@ -4,6 +4,45 @@
 
 Use separate Supabase and Vercel projects for Development and Production. Development may enable synthetic seed data and email mock mode. Never copy production academic data into routine development.
 
+The canonical application origins are:
+
+- Local development: `http://localhost:3000`
+- Production: `https://sigma-nu-scholarship.vercel.app`
+
+The Google login action constructs its redirect as `<NEXT_PUBLIC_APP_URL>/auth/callback`. The callback exchanges the one-time Supabase code for the cookie-backed session, accepts only a same-origin relative `next` destination, and otherwise returns to `/` on the callback request's own origin.
+
+## Current Vercel configuration
+
+Keep outbound email in mock mode until Resend webhook verification, delivery history, and retry behavior are complete.
+
+| Variable                               | Vercel environments    | Exposure    | Source                                                                    |
+| -------------------------------------- | ---------------------- | ----------- | ------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Production and Preview | Public      | Supabase Project Settings / Connect                                       |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Production and Preview | Public      | Supabase Project Settings -> API Keys -> Publishable key                  |
+| `NEXT_PUBLIC_APP_URL`                  | Production and Preview | Public      | Exact deployed origin; Production is the canonical URL listed above       |
+| `EMAIL_MODE`                           | Production and Preview | Server-only | Set to `mock` for the current deployment                                  |
+| `EMAIL_FROM`                           | Production and Preview | Server-only | Synthetic sender while mock; later an address on a Resend-verified domain |
+| `EMAIL_REPLY_TO`                       | Optional               | Server-only | A monitored chapter inbox                                                 |
+
+Do not configure `SUPABASE_SECRET_KEY`, `BOOTSTRAP_TOKEN_SHA256`, `RESEND_API_KEY`, or `RESEND_WEBHOOK_SECRET` in the current deployment. No current runtime path requires the Supabase secret key, the chapter is already initialized, and real email delivery remains disabled. `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` and `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET` are local-Supabase-CLI variables and must not be placed in Vercel; hosted provider credentials remain in the Supabase Dashboard.
+
+## Hosted OAuth URL configuration
+
+In Supabase Authentication -> URL Configuration use:
+
+- Site URL: `https://sigma-nu-scholarship.vercel.app`
+- Redirect URL: `http://localhost:3000/auth/callback`
+- Redirect URL: `https://sigma-nu-scholarship.vercel.app/auth/callback`
+
+No wildcard is needed for the stable production deployment. Add a separate exact preview callback only when testing OAuth on a particular Vercel preview URL.
+
+In the existing Google OAuth Web client use these Authorized JavaScript origins:
+
+- `http://localhost:3000`
+- `https://sigma-nu-scholarship.vercel.app`
+
+Keep the Authorized redirect URI set to the hosted Supabase callback shown in Authentication -> Sign In / Providers -> Google. The Vercel application callback is a Supabase redirect destination, not a Google Authorized redirect URI.
+
 ## Required setup
 
 1. Create a chapter-controlled Supabase project. In the project's Connect dialog or Settings -> API Keys, obtain a current publishable key (`sb_publishable_...`) and create a current secret key (`sb_secret_...`). Do not use the legacy JWT-shaped `anon` or `service_role` keys.

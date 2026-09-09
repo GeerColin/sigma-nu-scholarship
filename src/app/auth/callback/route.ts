@@ -1,9 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTrustedCallbackRedirect } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/server";
-
-function trustedNextPath(value: string | null) {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -13,7 +10,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error)
       return NextResponse.redirect(
-        new URL(trustedNextPath(url.searchParams.get("next")), url.origin),
+        getTrustedCallbackRedirect(url.searchParams.get("next"), url.origin),
       );
   }
   return NextResponse.redirect(new URL("/login?error=callback", url.origin));

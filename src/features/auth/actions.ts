@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getOAuthCallbackUrl } from "@/lib/auth/redirects";
 import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${publicEnv.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: getOAuthCallbackUrl(publicEnv.NEXT_PUBLIC_APP_URL),
       queryParams: { access_type: "offline", prompt: "consent" },
     },
   });
