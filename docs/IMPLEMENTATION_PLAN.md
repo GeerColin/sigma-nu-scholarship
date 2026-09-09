@@ -17,7 +17,7 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Normalized chapter-scoped schema and forward-only migrations
 - [x] Role-aware route guards for Chair/Admin, Member, and Proctor routes; RLS remains the data boundary
 - [x] Access-request approval, rejection, roster linking, and audited disconnection operations and UI
-- [~] Google OAuth browser verification: the existing Scholarship Chair session, identity, persistence, and live hosted data access are verified; separate synthetic Google identities are still required for the complete browser role matrix
+- [~] Google OAuth browser verification: the production OAuth round trip, Scholarship Chair identity, session persistence, live hosted data access, and logout are verified; separate synthetic Google identities are still required for the complete browser role matrix
 - [~] One-time secure bootstrap and first-time setup wizard
 - [x] RLS and database permission coverage: 129 pgTAP checks pass locally; the foundational 91-check suite also passes against hosted development
 - [!] Complete separate-account browser checks for Awaiting Approval, Member, Proctor, and Admin after those synthetic Google test accounts are available
@@ -126,6 +126,14 @@ Baseline hosted development counts before the connected-workflow fixture:
 The semester, course, grades, study-hour policy, override, and session records are explicitly synthetic development data. No real roster or real academic record has been imported.
 
 The remaining live authorization boundary is separate Google OAuth test identities. Add synthetic test-account emails to Google Auth Platform when the app remains in Testing, then use separate browser profiles/sessions to create and exercise Awaiting Approval, Member, Proctor, and Admin accounts. Do not place credentials or recovery codes in repository files or chat.
+
+## Production OAuth verification — 2026-09-09
+
+- Production Google OAuth now sends `https://sigma-nu-scholarship.vercel.app/auth/callback` as the application callback and `https://bryppeounpmtobjwwpfs.supabase.co/auth/v1/callback` as the Google-authorized Supabase callback.
+- A real Google OAuth round trip returned to the stable Vercel domain and resolved the linked account as the existing Scholarship Chair.
+- The authenticated production session survived a full page reload and retained access to the Chair-only Administration area.
+- Added an authenticated-shell logout control for desktop and mobile. Production logout redirects to `/login`, and a subsequent request to `/administration` redirects back to `/login`.
+- The complete live role matrix remains blocked on separate synthetic Google test accounts; local and hosted pgTAP/RLS tests continue to cover those authorization boundaries without real roster or academic data.
 
 ## Connected synthetic workflow verification — 2026-09-08
 
