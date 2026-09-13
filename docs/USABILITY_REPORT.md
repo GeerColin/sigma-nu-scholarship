@@ -1,6 +1,6 @@
 # Usability phase — verified 2026-09-13
 
-Status: UI implementation, release gates, deployment, and Chair responsive checks complete. Repeated fresh-load read failures are under investigation; a minimal server-only diagnostic change passed local verification, with hosted capture pending. Live Member and pure-Proctor usability verification remains pending separate synthetic Google accounts. This report distinguishes source/DOM evidence from actual deployed browser checks; it is not a full role or accessibility certification.
+Status: UI implementation, release gates, deployment, and Chair responsive checks complete. Repeated fresh-load read failures remain unexplained; minimal server-only diagnostics are deployed, but the failure did not recur during three fresh-load checks. Live Member and pure-Proctor usability verification remains pending separate synthetic Google accounts. This report distinguishes source/DOM evidence from actual deployed browser checks; it is not a full role or accessibility certification.
 
 ## 1. Member homepage
 
@@ -26,13 +26,13 @@ Deployed browser checks on 2026-09-13 recorded the following document-width meas
 
 | Viewport  | Chair routes checked | Horizontal overflow |
 | --------- | -------------------: | ------------------- |
-| 390×844   |                   15 | None                |
-| 430×932   |                   15 | None                |
-| 768×1024  |                   15 | None                |
-| 1366×768  |                   15 | None                |
-| 1920×1080 |                   15 | None                |
+| 390×844   |                   17 | None                |
+| 430×932   |                   17 | None                |
+| 768×1024  |                   17 | None                |
+| 1366×768  |                   17 | None                |
+| 1920×1080 |                   17 | None                |
 
-The 15 routes were Dashboard, Members (Synthetic search), Synthetic Blake's profile, This Week, Study Hours (Synthetic Blake), Analytics, Settings, Administration, Roles, CSV Import, Semester Export, Chair Handoff, Setup, Guide, and Email. Each loaded its expected page heading. The populated synthetic CSV preview and unsaved Proctor form were additionally checked at all five sizes without overflow. Screenshots inspected the phone dashboard/menu, synthetic member cards/profile/course shortcut, expanded hour override, chart axes/legends, populated CSV preview, Proctor logger, and deadline editor, plus the 1366×768 study-hour table. Document-width measurements do not prove every internal control or dialog has been visually inspected.
+The 17 routes were Dashboard, Members (Synthetic search), Synthetic Blake's profile, This Week, Study Hours (Synthetic Blake), Analytics, Settings, Administration, Roles, CSV Import, Semester Export, Chair Handoff, Setup, Guide, Email, Account Requests, and Audit Log. Each loaded its expected page heading (85 measurements). The populated synthetic CSV preview and unsaved Proctor form were additionally checked at all five sizes without overflow. Screenshots inspected the phone dashboard/menu, synthetic member cards/profile/course shortcut, expanded hour override, chart axes/legends, populated CSV preview, Proctor logger, deadline editor, and roster empty state, plus the 1366×768 study-hour table. Document-width measurements do not prove every internal control or dialog has been visually inspected.
 
 ## 6. Accessibility
 
@@ -69,9 +69,11 @@ After explicit approval, usability commit `b45e65b` was pushed to `master`. The 
 
 The Vercel dashboard also identifies this deployment as Production / Ready / Current and assigns the stable domain. After explicit browser-retry approval, the deployed UI was inspected in one reused browser tab; temporary viewport overrides were reset and the tab returned to the scholarship dashboard. The checks in sections 5–6 verify this UI revision, not just deployment metadata. No workaround was used to bypass the earlier usage-limit or publication denials.
 
-Live synthetic interactions: Members search isolated seven Synthetic rows; Synthetic Blake's Courses shortcut opened the course section and Manage requirement opened the member-filtered Study Hours page. The expanded override retained required-hours, reason, and confirmation controls without submitting. `tests/fixtures/usability-roster.csv` produced three ready / two excluded rows, defaulted blank Status to Active, identified a duplicate and missing first name, and kept Import disabled without acknowledgment. Nothing was imported. Chair access to the Proctor form selected Synthetic Gray and a 0-hour / 30-minute duration; its save control became enabled, but no session was saved. Expanded Week 3 deadline fields remained readable and labeled; no deadline was changed.
+Live synthetic interactions: Members search isolated seven Synthetic rows; a 2–3 estimated-GPA range returned Synthetic Blake, Devon, and Gray, while a no-match synthetic search displayed Clear filters. Synthetic Blake's Courses shortcut opened the course section and Manage requirement opened the member-filtered Study Hours page. The expanded override retained required-hours, reason, and confirmation controls without submitting. `tests/fixtures/usability-roster.csv` produced three ready / two excluded rows, defaulted blank Status to Active, identified a duplicate and missing first name, and kept Import disabled without acknowledgment. Nothing was imported. Chair access to the Proctor form selected Synthetic Gray and a 0-hour / 30-minute duration; its save control became enabled, but no session was saved. Expanded Week 3 deadline fields remained readable and labeled; no deadline was changed.
 
-Two fresh dashboard requests reached the recovery screen and recovered through Try again. Vercel's runtime log at 2026-09-13T13:20:13.870Z records `Could not load member academic status` (digest `2760687485`). The 75 page/viewport checks then passed without recurrence, but a post-deployment reload at 2026-09-13T13:32:57.809Z failed with `Could not load members` (digest `4065596909`) on follow-up deployment `68AXfJMM3`. The query helper deliberately fails closed when a read fails; existing logs do not identify the underlying query/provider cause. A minimal server-only diagnostic cause is being added: static operation label, bounded HTTP status, and validated database/API error-code shape only. Provider messages, response bodies, URLs, headers, credentials, and academic rows are not retained. No blind retry, secret-key shortcut, or RLS change was added. These are recovered but unresolved recurring read failures, not fixed root causes or successful authorization tests.
+Two fresh dashboard requests reached the recovery screen and recovered through Try again. Vercel's runtime log at 2026-09-13T13:20:13.870Z records `Could not load member academic status` (digest `2760687485`). The initial 75 page/viewport checks then passed without recurrence, but a post-deployment reload at 2026-09-13T13:32:57.809Z failed with `Could not load members` (digest `4065596909`) on follow-up deployment `68AXfJMM3`. The query helper deliberately fails closed when a read fails; existing logs do not identify the underlying query/provider cause. Minimal server-only diagnostics were deployed in commit `0731f50`: static operation label, bounded HTTP status, and validated database/API error-code shape only. Provider messages, response bodies, URLs, headers, credentials, and academic rows are not retained. No blind retry, secret-key shortcut, or RLS change was added. These are recovered but unresolved recurring read failures, not fixed root causes or successful authorization tests.
+
+The [diagnostic deployment](https://vercel.com/sigma-nu/sigma-nu-scholarship/FaYD7bt1wGmud5giDL6KWyQDEKVZ) reported success. Three fresh dashboard loads succeeded, and its runtime log window at approximately 09:46 EDT reported zero errors. There was no failing request from which to capture a new diagnostic cause. Additional account-request/audit viewport checks and synthetic roster filtering also passed. This does not establish that the intermittent failure is fixed.
 
 ## 13. Pilot readiness
 

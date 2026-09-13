@@ -36,7 +36,7 @@ export function AnalyticsCharts({ data }: { data: AnalyticsPoint[] }) {
               <YAxis domain={[0, 100]} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="onTime" name="On time" stackId="a" fill="#16745a" />
+              <Bar dataKey="onTime" name="On Time" stackId="a" fill="#16745a" />
               <Bar dataKey="late" name="Late" stackId="a" fill="#d7a72f" />
               <Bar
                 dataKey="missing"

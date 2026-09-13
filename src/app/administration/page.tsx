@@ -77,7 +77,7 @@ export default async function AdministrationPage() {
     },
     {
       title: "Scholarship Chair handoff",
-      detail: "Readiness checks and atomic role transfer",
+      detail: "Review readiness and transfer the Chair role",
       href: "/administration/handoff",
       ready: true,
     },
