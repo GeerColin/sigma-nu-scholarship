@@ -1,6 +1,6 @@
-# Usability phase — 2026-09-12
+# Usability phase — verified 2026-09-13
 
-Status: implementation and automated regression verification complete; new live visual/role verification is pending browser access. Do not treat the previous deployment's browser checks as verification of this UI revision.
+Status: implementation, automated regression verification, deployment, and Chair responsive checks complete. Live Member and pure-Proctor usability verification remains pending separate synthetic Google accounts. This report distinguishes source/DOM evidence from actual deployed browser checks; it is not a full role or accessibility certification.
 
 ## 1. Member homepage
 
@@ -22,11 +22,23 @@ Course setup reveals only relevant grading fields, explains default/custom perce
 
 Members use linked cards below the wide-desktop breakpoint. Study Hours uses labeled stacked rows while retaining all administrative controls. Dense tables wait until enough space exists beside the sidebar. CSV previews use phone cards. GPA filters use fluid widths; deadline controls fit their form columns. Profile section links wrap instead of requiring horizontal scrolling.
 
-These are implementation/source findings. Actual checks at 390×844, a larger phone, tablet, 1366×768, and 1920×1080 remain pending; no new screenshot/overflow results are claimed.
+Deployed browser checks on 2026-09-13 recorded the following document-width measurements:
+
+| Viewport  | Chair routes checked | Horizontal overflow |
+| --------- | -------------------: | ------------------- |
+| 390×844   |                   15 | None                |
+| 430×932   |                   15 | None                |
+| 768×1024  |                   15 | None                |
+| 1366×768  |                   15 | None                |
+| 1920×1080 |                   15 | None                |
+
+The 15 routes were Dashboard, Members (Synthetic search), Synthetic Blake's profile, This Week, Study Hours (Synthetic Blake), Analytics, Settings, Administration, Roles, CSV Import, Semester Export, Chair Handoff, Setup, Guide, and Email. Each loaded its expected page heading. The populated synthetic CSV preview and unsaved Proctor form were additionally checked at all five sizes without overflow. Screenshots inspected the phone dashboard/menu, synthetic member cards/profile/course shortcut, expanded hour override, chart axes/legends, populated CSV preview, Proctor logger, and deadline editor, plus the 1366×768 study-hour table. Document-width measurements do not prove every internal control or dialog has been visually inspected.
 
 ## 6. Accessibility
 
-Current-page links now expose `aria-current`. Visual, keyboard, and screen-reader content order agree. Study progress has an accessible name/value; statuses retain text rather than color alone. Course-specific check-in labels and Proctor search help identify inputs. Focus uses dark/white contrasting rings, loading respects reduced-motion preferences, and the recovery button uses this Next.js version's `retry` API. Native confirmation controls protect destructive actions; disconnection, override removal, and freeze confirmation are also checked at the server boundary.
+Current-page links now expose `aria-current`. Source order aligns visual, keyboard, and screen-reader content order. Study progress has an accessible name/value; statuses retain text rather than color alone. Course-specific check-in labels and Proctor search help identify inputs. Focus uses dark/white contrasting rings, loading respects reduced-motion preferences, and the recovery button uses this Next.js version's `retry` API. Native confirmation controls protect destructive actions; disconnection, override removal, and freeze confirmation are also checked at the server boundary.
+
+Live phone checks verified the menu expands to all routes, Tab focuses its Dashboard link with a solid visible outline, current-page indicators are present, and the expanded Settings controls have associated accessible labels. No physical screen-reader session or comprehensive WCAG audit is claimed.
 
 ## 7. Wording
 
@@ -38,25 +50,31 @@ Members can submit/revise directly from their current status card. Chair custom-
 
 ## 9. Intentionally unchanged
 
-The visual system, RLS, OAuth, grade calculations/revision history, assignment rules, audit behavior, exports, CSV validation, and handoff transaction are preserved. No database migration was needed. Email infrastructure remains future-compatible without enabling external delivery. The full separate-synthetic-Google-account OAuth matrix remains deferred, as previously documented. Browser visual and keyboard checks cannot be substituted by mocked DOM tests.
+The visual system, RLS, OAuth, grade calculations/revision history, assignment rules, audit behavior, exports, CSV validation, and handoff transaction are preserved. No database migration was needed. Email infrastructure remains future-compatible without enabling external delivery. The full separate-synthetic-Google-account OAuth matrix remains deferred, as previously documented. Browser visual and keyboard checks cannot be substituted by mocked DOM tests. Chair access to the Proctor form does not establish a pure-Proctor account's privacy or edit permissions; the Member homepage was not tested with the Chair's personal academic records.
 
 ## 10. Automated evidence
 
-- Unit/DOM suite: 99 tests across 18 files pass. Six new synthetic interaction tests cover prefill/revisions, grading fields, archive acknowledgment, Proctor duration/date/privacy/edit controls, and recovery.
-- Local PostgreSQL/pgTAP/RLS: 182 checks across 13 files pass.
-- Hosted PostgreSQL/pgTAP/RLS: 182 checks across 13 files pass; fixtures end in rollback.
-- Production dependency audit: zero vulnerabilities.
+- Unit/DOM suite rerun on 2026-09-13: 99 tests across 18 files pass. Six new synthetic interaction tests cover prefill/revisions, grading fields, archive acknowledgment, Proctor duration/date/privacy/edit controls, and recovery.
+- Local PostgreSQL/pgTAP/RLS rerun on 2026-09-13: 182 checks across 13 files pass.
+- Hosted PostgreSQL/pgTAP/RLS rerun on 2026-09-13: 182 checks across 13 files pass; fixtures end in rollback.
+- Production dependency audit rerun on 2026-09-13: zero vulnerabilities.
 
 ## 11. Release gates
 
-ESLint, strict TypeScript, repository-wide Prettier verification, production build, and Git whitespace verification all pass in the final release run. A DOM worker timed out starting inside the sandbox; the same test suite passed outside it. This was not ignored as a passing test run.
+ESLint, strict TypeScript, repository-wide Prettier verification, production build, and Git whitespace verification all pass in the 2026-09-13 release rerun. A DOM worker timed out starting inside the sandbox in an earlier run; the same test suite passed outside it. This was not ignored as a passing test run.
 
 ## 12. Vercel verification
 
-The verified revision is committed locally, but publication to GitHub's default `master` branch was rejected by auto-review because it triggers deployment. Explicit publication approval is required; no new Vercel deployment is claimed. Live UI verification is also pending: the browser tool previously denied navigation because of its usage limit. No alternate publication route, browser, raw browser protocol, or other workaround was used to bypass either denial.
+After explicit approval, usability commit `b45e65b` was pushed to `master`. The subsequent user commit `2e5c63b` adds only roster-import.csv and retains the verified application code. On 2026-09-13, GitHub's Vercel status for `2e5c63b` reports `success`: [deployment details](https://vercel.com/sigma-nu/sigma-nu-scholarship/EC44qNfom6AJgDpdMouXF9bcTnaJ).
+
+The Vercel dashboard also identifies this deployment as Production / Ready / Current and assigns the stable domain. After explicit browser-retry approval, the deployed UI was inspected in one reused browser tab; temporary viewport overrides were reset and the tab returned to the scholarship dashboard. The checks in sections 5–6 verify this UI revision, not just deployment metadata. No workaround was used to bypass the earlier usage-limit or publication denials.
+
+Live synthetic interactions: Members search isolated seven Synthetic rows; Synthetic Blake's Courses shortcut opened the course section and Manage requirement opened the member-filtered Study Hours page. The expanded override retained required-hours, reason, and confirmation controls without submitting. `tests/fixtures/usability-roster.csv` produced three ready / two excluded rows, defaulted blank Status to Active, identified a duplicate and missing first name, and kept Import disabled without acknowledgment. Nothing was imported. Chair access to the Proctor form selected Synthetic Gray and a 0-hour / 30-minute duration; its save control became enabled, but no session was saved. Expanded Week 3 deadline fields remained readable and labeled; no deadline was changed.
+
+One fresh dashboard request reached the recovery screen. Try again restored the dashboard. Vercel's runtime log at 2026-09-13T13:20:13.870Z records `Could not load member academic status` (digest `2760687485`); the query helper deliberately fails closed when an academic-status read fails. The log does not identify the underlying query/provider cause. This failure did not recur in the subsequent 75 page/viewport checks. Record it as a recovered, unexplained read failure, not a fixed root cause or successful authorization test.
 
 ## 13. Pilot readiness
 
-The implemented interface is a better candidate for a small member pilot, but this phase is not fully signed off until the new deployed UI passes the required viewport/keyboard checks and the available synthetic role workflows. Do not automatically import the real roster or academic records.
+The Chair interface has passed the documented deployed responsive checks, but the whole phase is not fully signed off for a real-member pilot. Separate synthetic Google accounts must still exercise the Member homepage/check-in/course flow and pure-Proctor logging/current-week edit/old-session lock. The complete separate-account authorization matrix remains deferred; automated RLS and mocked DOM coverage are not its replacement. Monitor the recovered read failure if it recurs. Do not automatically import the real roster or academic records.
 
-No real roster/academic data was imported, no external email delivery was enabled, no Notification Center/bell/inbox was built, and no credentials were committed. The local roster-import.csv remains untouched and excluded from the release.
+No real roster/academic data was imported into Supabase by the agent in this phase, no external email delivery was enabled, no Notification Center/bell/inbox was built, and no credentials were committed by the agent. The agent left roster-import.csv untouched and excluded it from the usability commit; the user's subsequent manual commit tracks it. Existing non-synthetic member records were not used as mutation-test subjects. No database import was performed by the agent.
