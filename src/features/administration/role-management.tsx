@@ -156,10 +156,18 @@ function RoleControl({
           {enabled ? "Assigned" : unavailableLabel || "Not assigned"}
         </p>
       </div>
-      <form action={manageMemberRole}>
+      <form action={manageMemberRole} className="space-y-2">
         <input type="hidden" name="memberId" value={memberId} />
         <input type="hidden" name="role" value={role} />
         <input type="hidden" name="enabled" value={String(!enabled)} />
+        {role === "admin" && canManage && (
+          <label className="flex max-w-48 items-start gap-2 text-sm text-[var(--muted)]">
+            <input type="checkbox" required className="mt-1" />
+            <span>
+              Confirm {enabled ? "removing" : "assigning"} Admin access.
+            </span>
+          </label>
+        )}
         <Button
           type="submit"
           disabled={!canManage}

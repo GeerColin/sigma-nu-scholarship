@@ -239,6 +239,7 @@ export default async function CheckInPage({
             <WeeklyCheckInForm
               weekId={period.currentWeek.id}
               courses={courses}
+              isRevision={Boolean(currentSubmission)}
             />
           ) : (
             <Card>

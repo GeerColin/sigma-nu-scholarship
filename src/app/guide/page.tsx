@@ -43,9 +43,10 @@ const workflows = [
     ],
   },
   {
-    title: "Send reviewed email",
+    title: "Optional: reviewed email",
     href: "/email",
     steps: [
+      "External email is optional; core workflows do not require a provider.",
       "Prepare a persistent draft batch; preparation sends nothing.",
       "Review the exact subject, body, recipients, and selection state.",
       "Approve, then explicitly send. Retry only failed delivery records.",
@@ -56,8 +57,8 @@ const workflows = [
     href: "/administration/handoff",
     steps: [
       "Download the semester ZIP and retain it according to chapter policy.",
-      "Resolve pending access requests and failed email deliveries.",
-      "Select an active connected successor and complete the atomic transfer.",
+      "Resolve pending access requests and, if email is enabled, failed deliveries.",
+      "Select an active connected successor and transfer the Scholarship Chair role.",
     ],
   },
 ] as const;
@@ -86,7 +87,9 @@ export default async function ChairGuidePage() {
               <h2 className="text-xl font-bold text-[var(--navy)]">
                 {workflow.title}
               </h2>
-              <Badge>Step {index + 1}</Badge>
+              <Badge>
+                {workflow.href === "/email" ? "Optional" : `Step ${index + 1}`}
+              </Badge>
             </CardHeader>
             <CardContent>
               <ol className="list-decimal space-y-2 pl-5 text-sm text-[var(--muted)]">

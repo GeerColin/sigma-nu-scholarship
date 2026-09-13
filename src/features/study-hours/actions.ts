@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
-  assignmentIdSchema,
   correctStudySessionSchema,
   editStudySessionSchema,
+  freezeAssignmentSchema,
   overrideAssignmentSchema,
   refreshAssignmentsSchema,
   removeOverrideSchema,
@@ -190,6 +190,7 @@ export async function removeStudyHourOverride(formData: FormData) {
   const parsed = removeOverrideSchema.safeParse({
     assignmentId: formData.get("assignmentId"),
     reason: formData.get("reason"),
+    confirmed: formData.get("confirmed") === "on",
   });
   if (!parsed.success)
     redirect((studyHoursPath + "?error=invalid-override-removal") as never);
@@ -206,8 +207,9 @@ export async function removeStudyHourOverride(formData: FormData) {
 
 export async function freezeStudyHourAssignment(formData: FormData) {
   await requireChairContext();
-  const parsed = assignmentIdSchema.safeParse({
+  const parsed = freezeAssignmentSchema.safeParse({
     assignmentId: formData.get("assignmentId"),
+    confirmed: formData.get("confirmed") === "on",
   });
   if (!parsed.success)
     redirect((studyHoursPath + "?error=invalid-assignment") as never);

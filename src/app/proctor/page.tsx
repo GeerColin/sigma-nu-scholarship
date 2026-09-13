@@ -6,6 +6,7 @@ import {
 } from "@/features/study-hours/proctor-session-logger";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireProctorContext } from "@/lib/auth/guards";
+import { dateInTimeZone } from "@/lib/domain/dates";
 import { createClient } from "@/lib/supabase/server";
 
 const statusMessages: Record<string, string> = {
@@ -132,6 +133,10 @@ export default async function ProctorPage({
         weekLabel={period?.currentWeek?.label ?? "No current week"}
         currentWeekStartsOn={period?.currentWeek?.startsOn ?? null}
         currentWeekEndsOn={period?.currentWeek?.endsOn ?? null}
+        defaultSessionDate={dateInTimeZone(
+          new Date(),
+          period?.semester.timezone ?? "UTC",
+        )}
         initialSessions={sessions}
         canCorrectAll={canCorrectAll}
       />

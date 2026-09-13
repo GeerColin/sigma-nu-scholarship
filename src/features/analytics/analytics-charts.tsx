@@ -26,13 +26,13 @@ export function AnalyticsCharts({ data }: { data: AnalyticsPoint[] }) {
     <div className="grid gap-8 xl:grid-cols-2">
       <figure>
         <figcaption className="mb-4 font-bold text-[var(--navy)]">
-          Check-in rate (%)
+          Weekly check-in status (%)
         </figcaption>
-        <div className="h-72" aria-label="Weekly submission rate chart">
+        <div className="h-64 sm:h-72" aria-label="Weekly submission rate chart">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="week" />
+              <XAxis dataKey="week" tick={{ fontSize: 12 }} minTickGap={16} />
               <YAxis domain={[0, 100]} />
               <Tooltip />
               <Legend />
@@ -50,19 +50,22 @@ export function AnalyticsCharts({ data }: { data: AnalyticsPoint[] }) {
       </figure>
       <figure>
         <figcaption className="mb-4 font-bold text-[var(--navy)]">
-          Estimated chapter GPA trend
+          Estimated Semester GPA
         </figcaption>
-        <div className="h-72" aria-label="Estimated chapter GPA trend chart">
+        <div
+          className="h-64 sm:h-72"
+          aria-label="Estimated Semester GPA trend chart"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="week" />
+              <XAxis dataKey="week" tick={{ fontSize: 12 }} minTickGap={16} />
               <YAxis domain={[0, 4]} />
               <Tooltip />
               <Line
                 type="monotone"
                 dataKey="estimatedGpa"
-                name="Estimated GPA"
+                name="Estimated Semester GPA"
                 stroke="#11294b"
                 strokeWidth={3}
               />

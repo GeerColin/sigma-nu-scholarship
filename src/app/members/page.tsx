@@ -4,7 +4,10 @@ import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getMemberDirectory } from "@/features/members/queries";
+import {
+  getMemberDirectory,
+  type MemberDirectoryItem,
+} from "@/features/members/queries";
 
 function optionalNumber(value: string | undefined) {
   if (value === undefined || value.trim() === "") return undefined;
@@ -17,11 +20,21 @@ function formatHours(minutes: number) {
 }
 
 const submissionLabels = {
-  on_time: "On time",
+  on_time: "On Time",
   late: "Late",
   missing: "Missing",
   not_configured: "No current week",
 } as const;
+
+function submissionTone(status: MemberDirectoryItem["submissionStatus"]) {
+  return status === "on_time"
+    ? "success"
+    : status === "late"
+      ? "warning"
+      : status === "missing"
+        ? "danger"
+        : "neutral";
+}
 
 export default async function MembersPage({
   searchParams,
@@ -73,7 +86,7 @@ export default async function MembersPage({
 
       <Card>
         <CardContent>
-          <form className="mb-5 grid gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+          <form className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,14rem)_auto]">
             <label className="relative">
               <span className="sr-only">Search members</span>
               <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-[var(--muted)]" />
@@ -98,7 +111,7 @@ export default async function MembersPage({
               <option value="incomplete">Incomplete hours</option>
               <option value="alerts">Academic alert</option>
             </select>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <label>
                 <span className="sr-only">Minimum estimated GPA</span>
                 <input
@@ -109,7 +122,7 @@ export default async function MembersPage({
                   step="0.01"
                   defaultValue={params.gpaMin ?? ""}
                   placeholder="Min GPA"
-                  className="min-h-12 w-28 rounded-xl border px-3"
+                  className="min-h-12 w-full rounded-xl border px-3"
                 />
               </label>
               <label>
@@ -122,7 +135,7 @@ export default async function MembersPage({
                   step="0.01"
                   defaultValue={params.gpaMax ?? ""}
                   placeholder="Max GPA"
-                  className="min-h-12 w-28 rounded-xl border px-3"
+                  className="min-h-12 w-full rounded-xl border px-3"
                 />
               </label>
             </div>
@@ -131,7 +144,56 @@ export default async function MembersPage({
             </button>
           </form>
 
-          <div className="overflow-x-auto">
+          <div className="grid gap-3 xl:hidden">
+            {members.map((member) => {
+              const remaining =
+                member.requiredMinutes === null
+                  ? null
+                  : Math.max(
+                      member.requiredMinutes - member.completedMinutes,
+                      0,
+                    );
+              return (
+                <Link
+                  key={member.id}
+                  href={`/members/${member.id}`}
+                  className="rounded-xl border p-4 transition hover:bg-[var(--surface-subtle)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-[var(--navy)]">
+                        {member.name}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--muted)] capitalize">
+                        {member.status} · {gpaLabel}:{" "}
+                        {member.estimatedGpa?.toFixed(2) ?? "—"}
+                      </p>
+                    </div>
+                    <Badge tone={submissionTone(member.submissionStatus)}>
+                      {submissionLabels[member.submissionStatus]}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {member.hasAcademicAlert && (
+                      <Badge tone="warning">Academic alert</Badge>
+                    )}
+                    {!member.connected && <Badge>Not connected</Badge>}
+                  </div>
+                  <p className="mt-3 text-sm text-[var(--muted)]">
+                    Study hours:{" "}
+                    {member.requiredMinutes === null
+                      ? "No assignment"
+                      : `${formatHours(member.completedMinutes)} of ${formatHours(member.requiredMinutes)}`}
+                    {remaining !== null && remaining > 0
+                      ? ` · ${formatHours(remaining)} remaining`
+                      : ""}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[54rem] text-left">
               <thead>
                 <tr className="border-b text-sm text-[var(--muted)]">
@@ -172,17 +234,7 @@ export default async function MembersPage({
                         {member.estimatedGpa?.toFixed(2) ?? "—"}
                       </td>
                       <td className="py-4">
-                        <Badge
-                          tone={
-                            member.submissionStatus === "on_time"
-                              ? "success"
-                              : member.submissionStatus === "late"
-                                ? "warning"
-                                : member.submissionStatus === "missing"
-                                  ? "danger"
-                                  : "neutral"
-                          }
-                        >
+                        <Badge tone={submissionTone(member.submissionStatus)}>
                           {submissionLabels[member.submissionStatus]}
                         </Badge>
                       </td>
@@ -209,12 +261,20 @@ export default async function MembersPage({
                 })}
               </tbody>
             </table>
-            {!members.length && (
-              <p className="py-10 text-center text-[var(--muted)]">
+          </div>
+          {!members.length && (
+            <div className="py-10 text-center">
+              <p className="text-[var(--muted)]">
                 No members match these filters.
               </p>
-            )}
-          </div>
+              <Link
+                href="/members"
+                className="mt-3 inline-flex min-h-11 items-center font-semibold text-[var(--navy)] underline"
+              >
+                Clear filters
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
     </ChairAppShell>

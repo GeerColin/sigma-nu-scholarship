@@ -85,6 +85,27 @@ export default async function MemberProfilePage({
         )}
       </div>
 
+      <nav
+        aria-label="Member profile sections"
+        className="mb-5 flex flex-wrap gap-2"
+      >
+        {[
+          ["Overview", "#overview"],
+          ["Courses", "#courses"],
+          ["Grade history", "#grade-history"],
+          ["Study hours", "#study-sessions"],
+          ["Alerts", "#alerts"],
+        ].map(([label, href]) => (
+          <a
+            key={href}
+            href={href}
+            className="inline-flex min-h-11 shrink-0 items-center rounded-xl border bg-white px-4 font-semibold text-[var(--navy)]"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
       {query.status && (
         <p
           role="status"
@@ -104,7 +125,7 @@ export default async function MemberProfilePage({
         </p>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div id="overview" className="grid scroll-mt-4 gap-5 lg:grid-cols-3">
         <Card>
           <CardContent>
             <p className="text-sm font-semibold text-[var(--muted)]">
@@ -157,6 +178,14 @@ export default async function MemberProfilePage({
                 No study-hour assignment yet.
               </p>
             )}
+            {member.studyHours && (
+              <Link
+                href={`/study-hours?member=${member.id}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-xl border px-3 font-semibold text-[var(--navy)]"
+              >
+                Manage requirement (Chair/Admin)
+              </Link>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -176,7 +205,7 @@ export default async function MemberProfilePage({
         </Card>
       </div>
 
-      <Card className="mt-5">
+      <Card id="courses" className="mt-5 scroll-mt-4">
         <CardHeader>
           <h2 className="text-xl font-bold text-[var(--navy)]">
             Current courses
@@ -283,10 +312,10 @@ export default async function MemberProfilePage({
       </Card>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
-        <Card>
+        <Card id="grade-history" className="scroll-mt-4">
           <CardHeader>
             <h2 className="text-xl font-bold text-[var(--navy)]">
-              Submission history and GPA trend
+              Submission history and Estimated GPA trend
             </h2>
           </CardHeader>
           <div className="divide-y">
@@ -340,7 +369,7 @@ export default async function MemberProfilePage({
           </div>
         </Card>
 
-        <Card>
+        <Card id="study-sessions" className="scroll-mt-4">
           <CardHeader>
             <h2 className="text-xl font-bold text-[var(--navy)]">
               Current-week study sessions
@@ -373,7 +402,7 @@ export default async function MemberProfilePage({
         </Card>
       </div>
 
-      <Card className="mt-5">
+      <Card id="alerts" className="mt-5 scroll-mt-4">
         <CardHeader>
           <h2 className="text-xl font-bold text-[var(--navy)]">
             Academic alert history

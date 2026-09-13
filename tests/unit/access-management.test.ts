@@ -24,14 +24,23 @@ describe("account-management validation", () => {
     ).toBe(false);
   });
 
-  it("requires meaningful rejection and disconnection reasons", () => {
+  it("requires meaningful reasons and confirmation before disconnection", () => {
     expect(
       rejectAccessRequestSchema.safeParse({ requestId, reason: " " }).success,
     ).toBe(false);
     expect(
-      disconnectAccountSchema.safeParse({ memberId, reason: "Wrong link" })
-        .success,
+      disconnectAccountSchema.safeParse({
+        memberId,
+        reason: "Wrong link",
+        confirmed: "yes",
+      }).success,
     ).toBe(true);
+    expect(
+      disconnectAccountSchema.safeParse({
+        memberId,
+        reason: "Wrong link",
+      }).success,
+    ).toBe(false);
   });
 
   it("allows only explicit Proctor and Admin role changes", () => {

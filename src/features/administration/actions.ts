@@ -118,6 +118,7 @@ export async function disconnectMemberAccount(formData: FormData) {
   const parsed = disconnectAccountSchema.safeParse({
     memberId: formData.get("memberId"),
     reason: formData.get("reason"),
+    confirmed: formData.get("confirmed"),
   });
   if (!parsed.success) redirect(`${accessPath}?error=invalid-disconnection`);
 

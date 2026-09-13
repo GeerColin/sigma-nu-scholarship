@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  freezeAssignmentSchema,
   overrideAssignmentSchema,
   refreshAssignmentsSchema,
+  removeOverrideSchema,
   resolveAssignmentSchema,
   studyHourRuleSetSchema,
 } from "@/features/study-hours/validation";
@@ -25,6 +27,31 @@ describe("study-hour administrative validation", () => {
         reason: "Documented synthetic exception",
         confirmed: false,
       }).success,
+    ).toBe(false);
+  });
+
+  it("requires confirmation for override removal and assignment freeze", () => {
+    expect(
+      removeOverrideSchema.safeParse({
+        assignmentId,
+        reason: "Return to the calculated requirement",
+        confirmed: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      removeOverrideSchema.safeParse({
+        assignmentId,
+        reason: "Return to the calculated requirement",
+        confirmed: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      freezeAssignmentSchema.safeParse({ assignmentId, confirmed: true })
+        .success,
+    ).toBe(true);
+    expect(
+      freezeAssignmentSchema.safeParse({ assignmentId, confirmed: false })
+        .success,
     ).toBe(false);
   });
 

@@ -13,6 +13,7 @@ export const rejectAccessRequestSchema = z.object({
 export const disconnectAccountSchema = z.object({
   memberId: z.string().uuid(),
   reason: z.string().trim().min(2).max(500),
+  confirmed: z.literal("yes"),
 });
 
 export const manageMemberRoleSchema = z.object({

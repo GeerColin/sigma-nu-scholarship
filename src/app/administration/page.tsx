@@ -88,7 +88,7 @@ export default async function AdministrationPage() {
       <PageHeading
         eyebrow="Governance"
         title="Administration"
-        description="Manage account access and review the implementation status of protected governance workflows."
+        description="Manage roster access, roles, exports, records, and Scholarship Chair handoff."
       />
       <div className="grid gap-4 md:grid-cols-2">
         {cards.map((card) => (

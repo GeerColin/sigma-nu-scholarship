@@ -111,7 +111,27 @@ export function RosterImportForm({
                 </span>
               </div>
             </CardHeader>
-            <div className="overflow-x-auto">
+            <div className="divide-y sm:hidden">
+              {preview.rows.map((row) => (
+                <div key={row.rowNumber} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold">{row.fullName}</p>
+                    <span className="text-sm text-[var(--muted)] capitalize">
+                      {row.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    CSV row {row.rowNumber}
+                  </p>
+                  <p
+                    className={`mt-2 text-sm font-semibold ${row.issues.length ? "text-red-700" : "text-emerald-700"}`}
+                  >
+                    {row.issues.length ? row.issues.join(" ") : "Ready"}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full min-w-[680px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs tracking-wide text-[var(--muted)] uppercase">
                   <tr>

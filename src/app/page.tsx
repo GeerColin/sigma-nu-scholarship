@@ -4,7 +4,6 @@ import {
   BookOpenCheck,
   CheckCircle2,
   Clock3,
-  Mail,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -21,7 +20,6 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const [
     { count: openAlertCount, error: alertError },
-    { data: emailRows, error: emailError },
     { data: customCourses, error: customCourseError },
     { data: customReviews, error: customReviewError },
   ] = await Promise.all([
@@ -30,15 +28,10 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("chapter_id", context.chapterId!)
       .is("acknowledged_at", null),
-    supabase
-      .from("email_messages")
-      .select("id, state")
-      .eq("chapter_id", context.chapterId!)
-      .in("state", ["draft", "queued"]),
     period
       ? supabase
           .from("courses")
-          .select("id")
+          .select("id, member_id, name")
           .eq("chapter_id", context.chapterId!)
           .eq("semester_id", period.semester.id)
           .eq("grading_type", "custom")
@@ -49,15 +42,20 @@ export default async function DashboardPage() {
       .select("course_id")
       .eq("chapter_id", context.chapterId!),
   ]);
-  if (alertError || emailError || customCourseError || customReviewError) {
+  if (alertError || customCourseError || customReviewError) {
     throw new Error("Could not load dashboard metrics.");
   }
 
   const reviewedCustomCourseIds = new Set(
     (customReviews ?? []).map((review) => review.course_id),
   );
-  const customReviewCount = (customCourses ?? []).filter(
+  const pendingCustomCourses = (customCourses ?? []).filter(
     (course) => !reviewedCustomCourseIds.has(course.id),
+  );
+  const customReviewCount = pendingCustomCourses.length;
+  const nextCustomCourse = pendingCustomCourses[0];
+  const frozenReviewCount = members.filter(
+    (member) => member.assignmentState === "review_required",
   ).length;
   const weeklyStatus = {
     onTime: members.filter((member) => member.submissionStatus === "on_time")
@@ -92,7 +90,7 @@ export default async function DashboardPage() {
             (weeklyStatus.missing === 1 ? " is" : "s are") +
             " missing",
           detail: "Late submissions remain available.",
-          action: "Review missing",
+          action: "Review Missing Submissions",
           href: "/this-week?status=missing",
           icon: BookOpenCheck,
           tone: "danger",
@@ -105,24 +103,23 @@ export default async function DashboardPage() {
             " open academic alert" +
             (openAlertCount === 1 ? "" : "s"),
           detail: "Secure academic review is required.",
-          action: "Review members",
+          action: "Review Academic Alerts",
           href: "/members?filter=alerts",
           icon: AlertTriangle,
           tone: "warning",
         }
       : null,
-    (emailRows ?? []).length > 0
+    weeklyStatus.late > 0
       ? {
           title:
-            emailRows!.length +
-            " email" +
-            (emailRows!.length === 1 ? " is" : "s are") +
-            " ready",
-          detail: "Messages remain unsent until explicitly approved.",
-          action: "Review email",
-          href: "/email",
-          icon: Mail,
-          tone: "navy",
+            weeklyStatus.late +
+            " late weekly check-in" +
+            (weeklyStatus.late === 1 ? "" : "s"),
+          detail: "Late submissions are recorded separately from on-time work.",
+          action: "Review Late Submissions",
+          href: "/this-week?status=late",
+          icon: Clock3,
+          tone: "warning",
         }
       : null,
     customReviewCount > 0
@@ -131,11 +128,22 @@ export default async function DashboardPage() {
             customReviewCount +
             " custom grading review" +
             (customReviewCount === 1 ? "" : "s"),
-          detail: "Choose how these courses affect estimated GPA.",
-          action: "Review courses",
-          href: "/members",
+          detail: `Next: ${nextCustomCourse!.name}. Choose how this course affects Estimated Semester GPA.`,
+          action: "Review Custom Grading",
+          href: `/members/${nextCustomCourse!.member_id}#courses`,
           icon: AlertTriangle,
           tone: "warning",
+        }
+      : null,
+    frozenReviewCount > 0
+      ? {
+          title: `${frozenReviewCount} frozen study-hour assignment review${frozenReviewCount === 1 ? "" : "s"}`,
+          detail:
+            "A new calculation differs from an assignment already frozen for the week.",
+          action: "Review Study-Hour Changes",
+          href: "/study-hours?filter=review_required",
+          icon: Clock3,
+          tone: "danger",
         }
       : null,
   ].filter(Boolean) as Array<{
@@ -197,54 +205,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <>
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="overflow-hidden border-0 bg-[var(--navy)] text-white sm:col-span-2 xl:col-span-1">
-              <CardContent>
-                <div className="mb-5 flex items-center justify-between">
-                  <p className="font-semibold text-white/70">
-                    Current deadline
-                  </p>
-                  <Clock3 className="size-5 text-[var(--gold)]" />
-                </div>
-                <p className="text-2xl font-bold">
-                  {new Intl.DateTimeFormat(undefined, {
-                    timeZone: period.semester.timezone,
-                    dateStyle: "medium",
-                  }).format(new Date(period.currentWeek.deadlineAt))}
-                </p>
-                <p className="mt-1 text-white/70">
-                  {new Intl.DateTimeFormat(undefined, {
-                    timeZone: period.semester.timezone,
-                    timeStyle: "short",
-                  }).format(new Date(period.currentWeek.deadlineAt))}{" "}
-                  · {period.semester.timezone}
-                </p>
-              </CardContent>
-            </Card>
-            {(
-              [
-                ["On Time", weeklyStatus.onTime, "success"],
-                ["Late", weeklyStatus.late, "warning"],
-                ["Missing", weeklyStatus.missing, "danger"],
-              ] as const
-            ).map(([label, value, tone]) => (
-              <Card key={label}>
-                <CardContent>
-                  <p className="text-sm font-semibold text-[var(--muted)]">
-                    Weekly check-ins
-                  </p>
-                  <div className="mt-3 flex items-end justify-between gap-3">
-                    <p className="text-4xl font-bold tracking-tight text-[var(--navy)]">
-                      {value}
-                    </p>
-                    <Badge tone={tone}>{label}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
+        <div className="flex flex-col">
           <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -344,7 +305,54 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-        </>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Card className="overflow-hidden border-0 bg-[var(--navy)] text-white sm:col-span-2 xl:col-span-1">
+              <CardContent>
+                <div className="mb-5 flex items-center justify-between">
+                  <p className="font-semibold text-white/70">
+                    Current deadline
+                  </p>
+                  <Clock3 className="size-5 text-[var(--gold)]" />
+                </div>
+                <p className="text-2xl font-bold">
+                  {new Intl.DateTimeFormat(undefined, {
+                    timeZone: period.semester.timezone,
+                    dateStyle: "medium",
+                  }).format(new Date(period.currentWeek.deadlineAt))}
+                </p>
+                <p className="mt-1 text-white/70">
+                  {new Intl.DateTimeFormat(undefined, {
+                    timeZone: period.semester.timezone,
+                    timeStyle: "short",
+                  }).format(new Date(period.currentWeek.deadlineAt))}{" "}
+                  · {period.semester.timezone}
+                </p>
+              </CardContent>
+            </Card>
+            {(
+              [
+                ["On Time", weeklyStatus.onTime, "success"],
+                ["Late", weeklyStatus.late, "warning"],
+                ["Missing", weeklyStatus.missing, "danger"],
+              ] as const
+            ).map(([label, value, tone]) => (
+              <Card key={label}>
+                <CardContent>
+                  <p className="text-sm font-semibold text-[var(--muted)]">
+                    Weekly check-ins
+                  </p>
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <p className="text-4xl font-bold tracking-tight text-[var(--navy)]">
+                      {value}
+                    </p>
+                    <Badge tone={tone}>{label}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
     </ChairAppShell>
   );

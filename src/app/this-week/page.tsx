@@ -60,16 +60,6 @@ export default async function ThisWeekPage({
               period.semester.timezone
             : "No current academic week is configured."
         }
-        action={
-          period?.currentWeek ? (
-            <Link
-              href="/email?prepare=missing"
-              className="inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
-            >
-              Prepare Missing Grade Emails
-            </Link>
-          ) : undefined
-        }
       />
 
       {!period?.currentWeek ? (
@@ -132,8 +122,8 @@ export default async function ThisWeekPage({
                     }
                   >
                     {status === "all"
-                      ? "All"
-                      : labels[status as keyof typeof labels]}
+                      ? `All (${members.length})`
+                      : `${labels[status as keyof typeof labels]} (${counts[status as keyof typeof counts]})`}
                   </button>
                 ))}
               </form>
@@ -175,7 +165,9 @@ export default async function ThisWeekPage({
                 ))}
                 {!shown.length && (
                   <p className="py-8 text-center text-[var(--muted)]">
-                    No active members match this status.
+                    {selectedStatus === "missing"
+                      ? "Everyone has submitted a check-in this week."
+                      : "No active members match this status."}
                   </p>
                 )}
               </div>

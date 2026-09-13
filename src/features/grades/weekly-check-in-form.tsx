@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { submitWeeklyCheckIn } from "@/features/grades/actions";
 
@@ -15,9 +16,11 @@ export type CheckInCourse = {
 export function WeeklyCheckInForm({
   weekId,
   courses,
+  isRevision = false,
 }: {
   weekId: string;
   courses: CheckInCourse[];
+  isRevision?: boolean;
 }) {
   const initial = useMemo(
     () =>
@@ -43,9 +46,26 @@ export function WeeklyCheckInForm({
         <Card key={course.id}>
           <CardContent className="grid gap-4 sm:grid-cols-[1fr_14rem] sm:items-center">
             <div>
-              <p className="font-bold text-[var(--navy)]">{course.name}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-bold text-[var(--navy)]">{course.name}</p>
+                <Badge>
+                  {
+                    {
+                      percentage: "Percentage",
+                      letter: "Letter grade",
+                      pass_fail: "Pass / Fail",
+                      custom: "Custom",
+                    }[course.gradingType]
+                  }
+                </Badge>
+              </div>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Last reported: {course.previousValue ?? "No previous value"}
+                {isRevision ? "Current submission" : "Previous week"}:{" "}
+                {course.previousValue ?? "No previous value"}
+                {course.gradingType === "percentage" &&
+                course.previousValue !== null
+                  ? "%"
+                  : ""}
               </p>
             </div>
             <label>
@@ -54,8 +74,10 @@ export function WeeklyCheckInForm({
               </span>
               {course.gradingType === "percentage" ? (
                 <input
+                  aria-label={`Current standing for ${course.name}`}
                   required
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   max="100"
                   step="0.01"
@@ -63,16 +85,17 @@ export function WeeklyCheckInForm({
                   onChange={(e) =>
                     setValues({ ...values, [course.id]: e.target.value })
                   }
-                  className="min-h-11 w-full rounded-xl border px-3"
+                  className="min-h-12 w-full rounded-xl border px-3"
                 />
               ) : course.gradingType === "letter" ? (
                 <select
+                  aria-label={`Current standing for ${course.name}`}
                   required
                   value={values[course.id]}
                   onChange={(e) =>
                     setValues({ ...values, [course.id]: e.target.value })
                   }
-                  className="min-h-11 w-full rounded-xl border bg-white px-3"
+                  className="min-h-12 w-full rounded-xl border bg-white px-3"
                 >
                   <option value="">Select</option>
                   {["A", "B", "C", "D", "F"].map((v) => (
@@ -81,12 +104,13 @@ export function WeeklyCheckInForm({
                 </select>
               ) : course.gradingType === "pass_fail" ? (
                 <select
+                  aria-label={`Current standing for ${course.name}`}
                   required
                   value={values[course.id]}
                   onChange={(e) =>
                     setValues({ ...values, [course.id]: e.target.value })
                   }
-                  className="min-h-11 w-full rounded-xl border bg-white px-3"
+                  className="min-h-12 w-full rounded-xl border bg-white px-3"
                 >
                   <option value="">Select</option>
                   <option>Pass</option>
@@ -94,13 +118,14 @@ export function WeeklyCheckInForm({
                 </select>
               ) : (
                 <input
+                  aria-label={`Current standing for ${course.name}`}
                   required
                   maxLength={500}
                   value={values[course.id]}
                   onChange={(e) =>
                     setValues({ ...values, [course.id]: e.target.value })
                   }
-                  className="min-h-11 w-full rounded-xl border px-3"
+                  className="min-h-12 w-full rounded-xl border px-3"
                   placeholder="Describe your standing"
                 />
               )}
@@ -109,9 +134,12 @@ export function WeeklyCheckInForm({
         </Card>
       ))}
       {courses.length > 0 && (
-        <Button type="submit" className="w-full sm:w-auto">
-          Submit weekly check-in
-        </Button>
+        <SubmitButton
+          pendingLabel="Submitting grades…"
+          className="w-full sm:w-auto"
+        >
+          {isRevision ? "Save revised grades" : "Submit weekly grades"}
+        </SubmitButton>
       )}
     </form>
   );

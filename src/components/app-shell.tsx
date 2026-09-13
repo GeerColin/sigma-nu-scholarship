@@ -1,31 +1,7 @@
-import Link from "next/link";
-import {
-  BarChart3,
-  BookOpenCheck,
-  Clock3,
-  House,
-  CircleHelp,
-  LogOut,
-  Mail,
-  Menu,
-  Settings,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
+import { AdminNavigation } from "@/components/admin-navigation";
 import { BrandMark } from "@/components/brand-mark";
 import { signOut } from "@/features/auth/actions";
-
-const nav = [
-  { label: "Dashboard", href: "/", icon: House },
-  { label: "Members", href: "/members", icon: Users },
-  { label: "This Week", href: "/this-week", icon: BookOpenCheck },
-  { label: "Study Hours", href: "/study-hours", icon: Clock3 },
-  { label: "Email", href: "/email", icon: Mail },
-  { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Administration", href: "/administration", icon: ShieldCheck },
-  { label: "Chair Guide", href: "/guide", icon: CircleHelp },
-] as const;
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -88,21 +64,12 @@ export function AppShell({
           aria-label="Scholarship administration"
           className="flex-1 space-y-1 px-3 py-5"
         >
-          {nav.map(({ label, href, icon: Icon }, index) => (
-            <Link
-              key={href}
-              href={href as never}
-              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.95rem] font-semibold transition hover:bg-white/10 ${index === 0 ? "bg-white/12 text-white" : "text-white/72"}`}
-            >
-              <Icon aria-hidden="true" className="size-5" />
-              {label}
-            </Link>
-          ))}
+          <AdminNavigation variant="desktop" />
         </nav>
         <div className="border-t border-white/10 p-4">
           <p className="truncate text-sm font-semibold">{viewer.name}</p>
           <p className="text-xs text-white/60">{viewer.role}</p>
-          <p className="mt-0.5 truncate text-xs text-white/45">
+          <p className="mt-0.5 truncate text-xs text-white/60">
             {viewer.email}
           </p>
           <form action={signOut} className="mt-3">
@@ -145,16 +112,7 @@ export function AppShell({
                 aria-label="All administration pages"
                 className="absolute top-12 right-0 z-30 grid w-64 gap-1 rounded-xl border bg-white p-2 shadow-xl"
               >
-                {nav.map(({ label, href, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href as never}
-                    className="flex min-h-11 items-center gap-3 rounded-lg px-3 font-semibold text-[var(--navy)] hover:bg-[var(--surface-subtle)]"
-                  >
-                    <Icon aria-hidden="true" className="size-5" />
-                    {label}
-                  </Link>
-                ))}
+                <AdminNavigation variant="menu" />
               </nav>
             </details>
             <div
@@ -184,16 +142,7 @@ export function AppShell({
           aria-label="Mobile navigation"
           className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t bg-white px-2 py-2 shadow-[0_-8px_24px_rgba(17,41,75,0.08)] lg:hidden"
         >
-          {nav.slice(0, 4).map(({ label, href, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href as never}
-              className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg text-xs font-semibold text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
-            >
-              <Icon aria-hidden="true" className="size-5" />
-              {label}
-            </Link>
-          ))}
+          <AdminNavigation variant="mobile" />
         </nav>
       </div>
     </div>

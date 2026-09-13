@@ -40,10 +40,12 @@ export const overrideAssignmentSchema = z.object({
 export const removeOverrideSchema = z.object({
   assignmentId: z.string().uuid(),
   reason: z.string().trim().min(2).max(500),
+  confirmed: z.literal(true),
 });
 
-export const assignmentIdSchema = z.object({
+export const freezeAssignmentSchema = z.object({
   assignmentId: z.string().uuid(),
+  confirmed: z.literal(true),
 });
 
 export const resolveAssignmentSchema = z.object({

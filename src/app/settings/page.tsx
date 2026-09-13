@@ -60,9 +60,9 @@ export default async function SettingsPage({
   return (
     <ChairAppShell>
       <PageHeading
-        eyebrow="Chapter policy"
-        title="Semester settings"
-        description="Create academic calendars, choose the active semester, and adjust individual weekly deadlines without rewriting prior terms."
+        eyebrow="Configuration"
+        title="Chapter settings"
+        description="Manage chapter details, the academic calendar, deadlines, and optional communication settings."
       />
 
       {query.status && statusMessages[query.status] && (
@@ -232,87 +232,103 @@ export default async function SettingsPage({
                   )}
                 </div>
               </CardHeader>
-              <div className="divide-y">
-                {(
-                  semester.academic_weeks as Array<{
-                    id: string;
-                    sequence_number: number;
-                    label: string;
-                    starts_on: string;
-                    ends_on: string;
-                    deadline_at: string;
-                    deadline_overridden: boolean;
-                  }>
-                )
-                  .toSorted((a, b) => a.sequence_number - b.sequence_number)
-                  .map((week) => (
-                    <article
-                      key={week.id}
-                      className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-end"
-                    >
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-bold text-[var(--navy)]">
-                            {week.label}
+              <details open={semester.active}>
+                <summary className="min-h-11 cursor-pointer border-t px-5 py-3 font-semibold text-[var(--navy)]">
+                  {semester.active
+                    ? "View weekly deadlines"
+                    : "View semester weeks"}
+                </summary>
+                <div className="divide-y border-t">
+                  {(
+                    semester.academic_weeks as Array<{
+                      id: string;
+                      sequence_number: number;
+                      label: string;
+                      starts_on: string;
+                      ends_on: string;
+                      deadline_at: string;
+                      deadline_overridden: boolean;
+                    }>
+                  )
+                    .toSorted((a, b) => a.sequence_number - b.sequence_number)
+                    .map((week) => (
+                      <article
+                        key={week.id}
+                        className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-end"
+                      >
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-bold text-[var(--navy)]">
+                              {week.label}
+                            </p>
+                            {week.deadline_overridden && (
+                              <Badge tone="warning">Overridden</Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-[var(--muted)]">
+                            {week.starts_on}–{week.ends_on} · Deadline{" "}
+                            {formatDeadline(
+                              week.deadline_at,
+                              semester.timezone,
+                            )}
                           </p>
-                          {week.deadline_overridden && (
-                            <Badge tone="warning">Overridden</Badge>
-                          )}
                         </div>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {week.starts_on}–{week.ends_on} · Deadline{" "}
-                          {formatDeadline(week.deadline_at, semester.timezone)}
-                        </p>
-                      </div>
-                      {semester.active && (
-                        <form
-                          action={overrideAcademicWeekDeadline}
-                          className="flex flex-wrap gap-2"
-                        >
-                          <input type="hidden" name="weekId" value={week.id} />
-                          <label>
-                            <span className="sr-only">
-                              New deadline date for {week.label}
-                            </span>
-                            <input
-                              name="deadlineDate"
-                              required
-                              type="date"
-                              min={week.starts_on}
-                              max={week.ends_on}
-                              defaultValue={dateInTimeZone(
-                                new Date(week.deadline_at),
-                                semester.timezone,
-                              )}
-                              className="min-h-11 rounded-xl border px-3"
-                            />
-                          </label>
-                          <label>
-                            <span className="sr-only">
-                              New deadline time for {week.label}
-                            </span>
-                            <input
-                              name="deadlineTime"
-                              required
-                              type="time"
-                              defaultValue={timeInTimeZone(
-                                new Date(week.deadline_at),
-                                semester.timezone,
-                              )}
-                              className="min-h-11 rounded-xl border px-3"
-                            />
-                          </label>
-                          <Button
-                            type="submit"
-                            className="bg-transparent text-[var(--navy)] shadow-none ring-1 ring-[var(--border)] hover:bg-[var(--surface-subtle)]"
-                          >
-                            Update deadline
-                          </Button>
-                        </form>
-                      )}
-                    </article>
-                  ))}
-              </div>
+                        {semester.active && (
+                          <details className="rounded-xl border">
+                            <summary className="min-h-11 cursor-pointer px-3 py-2.5 font-semibold text-[var(--navy)]">
+                              Change deadline
+                            </summary>
+                            <form
+                              action={overrideAcademicWeekDeadline}
+                              className="grid gap-2 border-t p-3 sm:grid-cols-2"
+                            >
+                              <input
+                                type="hidden"
+                                name="weekId"
+                                value={week.id}
+                              />
+                              <label>
+                                <span className="sr-only">
+                                  New deadline date for {week.label}
+                                </span>
+                                <input
+                                  name="deadlineDate"
+                                  required
+                                  type="date"
+                                  min={week.starts_on}
+                                  max={week.ends_on}
+                                  defaultValue={dateInTimeZone(
+                                    new Date(week.deadline_at),
+                                    semester.timezone,
+                                  )}
+                                  className="min-h-11 w-full rounded-xl border px-3"
+                                />
+                              </label>
+                              <label>
+                                <span className="sr-only">
+                                  New deadline time for {week.label}
+                                </span>
+                                <input
+                                  name="deadlineTime"
+                                  required
+                                  type="time"
+                                  defaultValue={timeInTimeZone(
+                                    new Date(week.deadline_at),
+                                    semester.timezone,
+                                  )}
+                                  className="min-h-11 w-full rounded-xl border px-3"
+                                />
+                              </label>
+                              <Button type="submit" className="sm:col-span-2">
+                                Update deadline
+                              </Button>
+                            </form>
+                          </details>
+                        )}
+                      </article>
+                    ))}
+                </div>
+              </details>
             </Card>
           ))}
           {!semesters?.length && (

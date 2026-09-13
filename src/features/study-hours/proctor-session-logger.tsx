@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Clock3, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   correctStudySession,
@@ -33,6 +33,7 @@ export function ProctorSessionLogger({
   weekLabel,
   currentWeekStartsOn,
   currentWeekEndsOn,
+  defaultSessionDate,
   initialSessions,
   canCorrectAll,
 }: {
@@ -41,16 +42,26 @@ export function ProctorSessionLogger({
   weekLabel: string;
   currentWeekStartsOn: string | null;
   currentWeekEndsOn: string | null;
+  defaultSessionDate: string;
   initialSessions: SessionItem[];
   canCorrectAll: boolean;
 }) {
   const [memberName, setMemberName] = useState("");
+  const [durationHours, setDurationHours] = useState(1);
+  const [durationMinutes, setDurationMinutes] = useState(0);
   const memberId = useMemo(
     () =>
       members.find((member) => member.fullName === memberName)?.memberId ?? "",
     [memberName, members],
   );
-  const today = new Date().toISOString().slice(0, 10);
+  const defaultDate = currentWeekStartsOn
+    ? defaultSessionDate < currentWeekStartsOn
+      ? currentWeekStartsOn
+      : currentWeekEndsOn && defaultSessionDate > currentWeekEndsOn
+        ? currentWeekEndsOn
+        : defaultSessionDate
+    : defaultSessionDate;
+  const totalHours = durationHours + durationMinutes / 60;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -65,10 +76,19 @@ export function ProctorSessionLogger({
             <form action={recordStudySession} className="space-y-4">
               <input type="hidden" name="memberId" value={memberId} />
               <input type="hidden" name="weekId" value={weekId} />
+              <input type="hidden" name="hours" value={totalHours} />
+              <div className="rounded-xl bg-[var(--surface-subtle)] p-3">
+                <p className="text-sm font-semibold text-[var(--muted)]">
+                  Recording for
+                </p>
+                <p className="font-bold text-[var(--navy)]">{weekLabel}</p>
+              </div>
               <label className="block">
                 <span className="mb-1.5 block font-semibold">Member</span>
                 <input
                   list="active-members"
+                  aria-label="Member"
+                  aria-describedby="member-search-help"
                   required
                   value={memberName}
                   onChange={(event) => setMemberName(event.target.value)}
@@ -80,20 +100,54 @@ export function ProctorSessionLogger({
                     <option key={member.memberId} value={member.fullName} />
                   ))}
                 </datalist>
+                <span
+                  id="member-search-help"
+                  className="mt-1 block text-sm text-[var(--muted)]"
+                >
+                  Start typing, then select the member’s exact name.
+                </span>
               </label>
-              <label className="block">
-                <span className="mb-1.5 block font-semibold">Hours</span>
-                <input
-                  name="hours"
-                  required
-                  type="number"
-                  min="0.25"
-                  max="24"
-                  step="0.25"
-                  defaultValue="1"
-                  className="min-h-12 w-full rounded-xl border px-3"
-                />
-              </label>
+              <fieldset>
+                <legend className="mb-1.5 font-semibold">Duration</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  <label>
+                    <span className="mb-1 block text-sm text-[var(--muted)]">
+                      Hours
+                    </span>
+                    <input
+                      required
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      max="24"
+                      step="1"
+                      value={durationHours}
+                      onChange={(event) =>
+                        setDurationHours(Number(event.target.value))
+                      }
+                      className="min-h-12 w-full rounded-xl border px-3"
+                    />
+                  </label>
+                  <label>
+                    <span className="mb-1 block text-sm text-[var(--muted)]">
+                      Minutes
+                    </span>
+                    <select
+                      value={durationMinutes}
+                      onChange={(event) =>
+                        setDurationMinutes(Number(event.target.value))
+                      }
+                      className="min-h-12 w-full rounded-xl border bg-white px-3"
+                    >
+                      {[0, 15, 30, 45].map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
               <label className="block">
                 <span className="mb-1.5 block font-semibold">Date</span>
                 <input
@@ -102,16 +156,10 @@ export function ProctorSessionLogger({
                   type="date"
                   min={currentWeekStartsOn ?? undefined}
                   max={currentWeekEndsOn ?? undefined}
-                  defaultValue={today}
+                  defaultValue={defaultDate}
                   className="min-h-12 w-full rounded-xl border px-3"
                 />
               </label>
-              <div className="rounded-xl bg-[var(--surface-subtle)] p-3">
-                <p className="text-sm font-semibold text-[var(--muted)]">
-                  Academic week
-                </p>
-                <p className="font-bold text-[var(--navy)]">{weekLabel}</p>
-              </div>
               <label className="block">
                 <span className="mb-1.5 block font-semibold">
                   Notes{" "}
@@ -126,10 +174,14 @@ export function ProctorSessionLogger({
                   className="w-full rounded-xl border p-3"
                 />
               </label>
-              <Button type="submit" disabled={!memberId} className="w-full">
+              <SubmitButton
+                type="submit"
+                disabled={!memberId || totalHours <= 0 || totalHours > 24}
+                className="w-full"
+              >
                 <Clock3 className="mr-2 size-4" />
                 Record study hours
-              </Button>
+              </SubmitButton>
             </form>
           ) : (
             <div>
@@ -216,7 +268,7 @@ export function ProctorSessionLogger({
                       </label>
                       <label>
                         <span className="mb-1 block text-sm font-semibold">
-                          Hours
+                          Duration in hours
                         </span>
                         <input
                           name="hours"
@@ -228,6 +280,9 @@ export function ProctorSessionLogger({
                           defaultValue={session.durationMinutes / 60}
                           className="min-h-11 w-full rounded-xl border px-3"
                         />
+                        <span className="mt-1 block text-xs text-[var(--muted)]">
+                          Use quarter hours, such as 1.25 for 1 hour 15 minutes.
+                        </span>
                       </label>
                       <label className="sm:col-span-2">
                         <span className="mb-1 block text-sm font-semibold">
@@ -254,10 +309,10 @@ export function ProctorSessionLogger({
                           />
                         </label>
                       )}
-                      <Button type="submit" className="sm:col-span-2">
+                      <SubmitButton type="submit" className="sm:col-span-2">
                         <Save className="mr-2 size-4" />
                         Save {canCorrectAll ? "correction" : "entry"}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </details>
                 )}

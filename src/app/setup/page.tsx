@@ -89,12 +89,12 @@ export default async function SetupPage({
   if (!context.roles.includes("scholarship_chair")) redirect("/");
   const supabase = await createClient();
   const [
-    { data: chapter },
-    { count: semesterCount },
-    { count: weekCount },
-    { count: rosterCount },
-    { count: ruleCount },
-    { data: settings },
+    { data: chapter, error: chapterError },
+    { count: semesterCount, error: semesterError },
+    { count: weekCount, error: weekError },
+    { count: rosterCount, error: rosterError },
+    { count: ruleCount, error: ruleError },
+    { data: settings, error: settingsError },
   ] = await Promise.all([
     supabase
       .from("chapters")
@@ -104,6 +104,7 @@ export default async function SetupPage({
     supabase
       .from("semesters")
       .select("id", { count: "exact", head: true })
+      .eq("active", true)
       .eq("chapter_id", context.chapterId!),
     supabase
       .from("academic_weeks")
@@ -116,6 +117,7 @@ export default async function SetupPage({
     supabase
       .from("study_hour_rule_sets")
       .select("id", { count: "exact", head: true })
+      .eq("active", true)
       .eq("chapter_id", context.chapterId!),
     supabase
       .from("chapter_settings")
@@ -123,9 +125,28 @@ export default async function SetupPage({
       .eq("chapter_id", context.chapterId!)
       .maybeSingle(),
   ]);
-  const steps = [
+  if (
+    chapterError ||
+    semesterError ||
+    weekError ||
+    rosterError ||
+    ruleError ||
+    settingsError
+  ) {
+    throw new Error("Could not load setup readiness.");
+  }
+  const steps: Array<{
+    label: string;
+    complete: boolean;
+    href: string;
+    optional?: boolean;
+  }> = [
     { label: "Chapter identity", complete: Boolean(chapter), href: "/setup" },
-    { label: "Semester", complete: Boolean(semesterCount), href: "/settings" },
+    {
+      label: "Active semester",
+      complete: Boolean(semesterCount),
+      href: "/settings",
+    },
     {
       label: "Academic weeks",
       complete: Boolean(weekCount),
@@ -142,9 +163,10 @@ export default async function SetupPage({
       href: "/administration/import",
     },
     {
-      label: "Email identity",
+      label: "Optional external email",
       complete: Boolean(settings?.email_from),
       href: "/settings",
+      optional: true,
     },
   ];
 
@@ -167,14 +189,30 @@ export default async function SetupPage({
               <CardContent className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-[var(--muted)]">
-                    Step {index + 1}
+                    {step.optional
+                      ? "Optional integration"
+                      : `Step ${index + 1}`}
                   </p>
                   <p className="mt-1 font-bold text-[var(--navy)]">
                     {step.label}
                   </p>
                 </div>
-                <Badge tone={step.complete ? "success" : "warning"}>
-                  {step.complete ? "Complete" : "Needs setup"}
+                <Badge
+                  tone={
+                    step.optional
+                      ? "neutral"
+                      : step.complete
+                        ? "success"
+                        : "warning"
+                  }
+                >
+                  {step.optional
+                    ? step.complete
+                      ? "Configured"
+                      : "Not required"
+                    : step.complete
+                      ? "Complete"
+                      : "Needs setup"}
                 </Badge>
               </CardContent>
             </Card>

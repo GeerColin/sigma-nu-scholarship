@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Clock3 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock3 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,10 @@ import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireApprovedMemberContext } from "@/lib/auth/guards";
 import { submissionStatusLabel } from "@/lib/domain/submissions";
 import { createClient } from "@/lib/supabase/server";
+import {
+  memberCheckInState,
+  memberStudyHourState,
+} from "@/features/members/member-dashboard-state";
 
 function hours(minutes: number) {
   return (minutes / 60).toLocaleString(undefined, {
@@ -73,10 +77,19 @@ export default async function MemberHomePage() {
     );
   }
 
-  const remainingMinutes =
-    requiredMinutes === null
-      ? null
-      : Math.max(requiredMinutes - completedMinutes, 0);
+  const deadline = period?.currentWeek
+    ? new Date(period.currentWeek.deadlineAt)
+    : null;
+  const checkInState = period?.currentWeek
+    ? memberCheckInState({
+        submitted: Boolean(submission),
+        deadlineAt: period.currentWeek.deadlineAt,
+        now: new Date(),
+      })
+    : null;
+  const checkInOverdue = checkInState === "overdue";
+  const { remainingMinutes, progressPercent: studyProgress } =
+    memberStudyHourState(requiredMinutes, completedMinutes);
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl p-4 pb-24 sm:p-7">
@@ -140,10 +153,24 @@ export default async function MemberHomePage() {
         </Card>
       ) : (
         <div className="mt-7 grid gap-4 sm:grid-cols-2">
-          <Card className="border-0 bg-[var(--navy)] text-white">
+          <Card
+            className={
+              "border-0 text-white sm:col-span-2 " +
+              (checkInOverdue ? "bg-[var(--danger)]" : "bg-[var(--navy)]")
+            }
+          >
             <CardContent>
               <p className="text-sm font-semibold text-white/70">
                 Weekly grade check-in
+              </p>
+              <p className="mt-1 text-sm text-white/65">
+                Deadline:{" "}
+                {new Intl.DateTimeFormat(undefined, {
+                  timeZone: period.semester.timezone,
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(deadline!)}{" "}
+                · {period.semester.timezone}
               </p>
               <div className="mt-3 flex items-center gap-2 text-2xl font-bold">
                 {submission ? (
@@ -151,7 +178,13 @@ export default async function MemberHomePage() {
                 ) : (
                   <Clock3 className="size-6 text-[var(--gold)]" />
                 )}
-                {submission ? "Submitted" : "Not submitted"}
+                {submission
+                  ? submission.original_timing === "late"
+                    ? "Weekly check-in submitted late"
+                    : "Weekly check-in complete"
+                  : checkInOverdue
+                    ? "Your check-in is overdue"
+                    : "Your check-in is due"}
               </div>
               <p className="mt-2 text-sm text-white/65">
                 {submission
@@ -165,8 +198,56 @@ export default async function MemberHomePage() {
                       submission.revision_timing,
                       submission.revision_number,
                     )
-                  : "Late submissions remain available."}
+                  : checkInOverdue
+                    ? "Submit now. It will be recorded as late."
+                    : "Report your current standing before the deadline."}
               </p>
+              <Link
+                href="/member/check-in"
+                className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-white px-5 font-bold text-[var(--navy)] sm:w-auto"
+              >
+                {submission
+                  ? "Review or revise grades"
+                  : "Submit weekly grades"}
+                <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <p className="text-sm font-semibold text-[var(--muted)]">
+                Study Hours This Week
+              </p>
+              {requiredMinutes === null ? (
+                <p className="mt-3 text-[var(--muted)]">
+                  No study-hour assignment yet.
+                </p>
+              ) : (
+                <div className="mt-3">
+                  <p className="text-xl font-bold text-[var(--navy)]">
+                    {remainingMinutes === 0
+                      ? "Requirement complete"
+                      : `${hours(remainingMinutes!)} hours remaining`}
+                  </p>
+                  <div
+                    className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+                    role="progressbar"
+                    aria-label="Study-hour completion"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={studyProgress}
+                  >
+                    <div
+                      className="h-full rounded-full bg-[var(--success)]"
+                      style={{ width: `${studyProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--muted)]">
+                    {hours(completedMinutes)} of {hours(requiredMinutes)} hours
+                    completed
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -190,39 +271,6 @@ export default async function MemberHomePage() {
                   : "No submission for this week. "}
                 This estimate may differ from your official university GPA.
               </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                Study hours
-              </p>
-              {requiredMinutes === null ? (
-                <p className="mt-3 text-[var(--muted)]">
-                  No study-hour assignment yet.
-                </p>
-              ) : (
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {hours(requiredMinutes)}
-                    </p>
-                    <p className="text-sm text-[var(--muted)]">Required</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {hours(completedMinutes)}
-                    </p>
-                    <p className="text-sm text-[var(--muted)]">Completed</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-[var(--warning)]">
-                      {hours(remainingMinutes!)}
-                    </p>
-                    <p className="text-sm text-[var(--muted)]">Remaining</p>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
           <Card>

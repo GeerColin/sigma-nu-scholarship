@@ -224,9 +224,12 @@ export async function AccessManagement({
                     {profile?.email || "Email unavailable"}
                   </p>
                 </div>
-                <form action={disconnectMemberAccount} className="flex gap-3">
+                <form
+                  action={disconnectMemberAccount}
+                  className="grid gap-3 sm:grid-cols-[1fr_auto]"
+                >
                   <input type="hidden" name="memberId" value={member.id} />
-                  <label className="min-w-0 flex-1">
+                  <label className="min-w-0">
                     <span className="sr-only">Disconnection reason</span>
                     <input
                       name="reason"
@@ -242,10 +245,23 @@ export async function AccessManagement({
                       }
                     />
                   </label>
+                  <label className="flex items-start gap-2 text-sm sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      name="confirmed"
+                      value="yes"
+                      required
+                      disabled={isChair}
+                      className="mt-1"
+                    />
+                    <span>
+                      I confirm this Google account should be disconnected.
+                    </span>
+                  </label>
                   <Button
                     type="submit"
                     disabled={isChair}
-                    className="bg-transparent text-[var(--danger)] shadow-none ring-1 ring-[var(--border)] hover:bg-[var(--danger-soft)]"
+                    className="bg-[var(--danger)] hover:bg-[var(--danger)] sm:col-start-2 sm:row-start-1"
                   >
                     Disconnect
                   </Button>

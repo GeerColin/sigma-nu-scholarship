@@ -125,11 +125,11 @@ export async function HandoffWizard({ error }: { error?: string }) {
       <Card>
         <CardHeader>
           <h2 className="text-xl font-bold text-[var(--navy)]">
-            Atomic Chair transfer
+            Transfer Scholarship Chair
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Supabase revokes your Chair role and grants it to the successor in
-            one transaction. A failed transfer rolls back both changes.
+            The selected successor becomes the only Scholarship Chair. If the
+            transfer cannot finish safely, neither person’s access changes.
           </p>
         </CardHeader>
         <CardContent>

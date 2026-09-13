@@ -255,7 +255,7 @@ export default async function AnalyticsPage() {
         {[
           ["Current on-time rate", `${current?.onTime ?? 0}%`],
           [
-            "Current late / missing",
+            "Late / missing this week",
             `${current?.late ?? 0}% / ${current?.missing ?? 0}%`,
           ],
           ["Study-hour completion", `${completionRate}%`],
@@ -293,7 +293,7 @@ export default async function AnalyticsPage() {
         <Card>
           <CardHeader>
             <h2 className="text-xl font-bold text-[var(--navy)]">
-              Member GPA movement
+              Member Estimated GPA movement
             </h2>
           </CardHeader>
           <div className="divide-y">

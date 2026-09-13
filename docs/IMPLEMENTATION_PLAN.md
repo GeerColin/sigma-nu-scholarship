@@ -92,6 +92,22 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [~] Security, error/loading, empty-state, and backup/export review; the ZIP structure is unit-tested, the authenticated production export endpoint is exposed, and the full automated suite is green
 - [!] Production Supabase, Google OAuth, and Vercel are configured; configure Resend and optional custom DNS when production email or a custom domain is required
 
+## Usability phase — 2026-09-12
+
+- [x] Action-first Member homepage with real required/overdue/completed/late state, direct grade actions, deadline, study progress, and Estimated [Semester] GPA disclaimer
+- [x] Conditional course grading/scale fields, archive acknowledgment, course-specific check-in labels, prefill/revision clarity, and pending submit feedback
+- [x] Proctor hours/minutes entry, semester-timezone date default, visible week, optional notes, and preserved privacy/current-week edit controls
+- [x] Exception-first Chair dashboard and direct custom-grading/frozen-hour review links; email removed from launch-critical attention
+- [x] Responsive Members, Study Hours, CSV preview, profile section navigation, fluid filters/deadline controls, plain-language settings/handoff, and explicitly optional email setup/guide
+- [x] Accessible progress/current-page indicators, document-order alignment, stronger focus visibility, reduced-motion loading, safe error recovery, and destructive-action confirmations
+- [x] Automated regression evidence: 99 unit/DOM tests (18 files), 182 local pgTAP/RLS checks (13 files), and 182 hosted rollback-only pgTAP/RLS checks (13 files) pass; production dependency audit reports zero vulnerabilities
+- [x] Final release gates: ESLint, strict TypeScript, repository-wide Prettier verification, production build, and whitespace verification pass
+- [!] Verified UI revision committed locally. GitHub push to default `master` was rejected by auto-review because it triggers deployment; explicit publication approval is required. No new Vercel deployment is claimed.
+- [!] New live responsive/keyboard and synthetic role usability verification: browser navigation was denied by the tool's usage limit; no bypass was attempted. Previous browser results do not verify the new UI revision.
+- [!] Keep the phase open until deployed checks at 390×844, larger phone, tablet, 1366×768, and 1920×1080 are recorded. Separate synthetic Google-account identities remain required for the complete OAuth/browser role matrix.
+
+See [USABILITY_REPORT.md](USABILITY_REPORT.md) for changes, evidence, deferred checks, and pilot-readiness assessment. No database migrations, real roster import, real academic data import, external email activation, or notification-center feature were added. The local roster-import.csv is intentionally excluded from the release.
+
 ## Hosted development verification — 2026-09-08
 
 - Repository and hosted migration history both contain `202609070001` through `202609070010`.
