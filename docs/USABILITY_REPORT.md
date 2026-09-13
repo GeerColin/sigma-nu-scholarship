@@ -1,6 +1,6 @@
 # Usability phase — verified 2026-09-13
 
-Status: implementation, automated regression verification, deployment, and Chair responsive checks complete. Live Member and pure-Proctor usability verification remains pending separate synthetic Google accounts. This report distinguishes source/DOM evidence from actual deployed browser checks; it is not a full role or accessibility certification.
+Status: UI implementation, release gates, deployment, and Chair responsive checks complete. Repeated fresh-load read failures are under investigation; a minimal server-only diagnostic change passed local verification, with hosted capture pending. Live Member and pure-Proctor usability verification remains pending separate synthetic Google accounts. This report distinguishes source/DOM evidence from actual deployed browser checks; it is not a full role or accessibility certification.
 
 ## 1. Member homepage
 
@@ -54,14 +54,14 @@ The visual system, RLS, OAuth, grade calculations/revision history, assignment r
 
 ## 10. Automated evidence
 
-- Unit/DOM suite rerun on 2026-09-13: 99 tests across 18 files pass. Six new synthetic interaction tests cover prefill/revisions, grading fields, archive acknowledgment, Proctor duration/date/privacy/edit controls, and recovery.
+- Unit/DOM suite rerun on 2026-09-13: 101 tests across 19 files pass using one isolated worker. Six new synthetic interaction tests cover prefill/revisions, grading fields, archive acknowledgment, Proctor duration/date/privacy/edit controls, and recovery; two additional tests verify redacted server-read diagnostics. The preceding multi-worker rerun had a DOM-worker startup timeout and is not counted as passing.
 - Local PostgreSQL/pgTAP/RLS rerun on 2026-09-13: 182 checks across 13 files pass.
 - Hosted PostgreSQL/pgTAP/RLS rerun on 2026-09-13: 182 checks across 13 files pass; fixtures end in rollback.
 - Production dependency audit rerun on 2026-09-13: zero vulnerabilities.
 
 ## 11. Release gates
 
-ESLint, strict TypeScript, repository-wide Prettier verification, production build, and Git whitespace verification all pass in the 2026-09-13 release rerun. A DOM worker timed out starting inside the sandbox in an earlier run; the same test suite passed outside it. This was not ignored as a passing test run.
+ESLint, strict TypeScript, repository-wide Prettier verification, production build, and Git whitespace verification all pass in the 2026-09-13 release rerun, including the server-diagnostic follow-up. The diagnostic text is absent from generated browser static bundles. A DOM worker timed out starting inside the sandbox in an earlier run; a subsequent multi-worker run also timed out. The full 101-test suite passed with one isolated worker outside the sandbox. Failed runs were not ignored as passing.
 
 ## 12. Vercel verification
 
@@ -71,10 +71,10 @@ The Vercel dashboard also identifies this deployment as Production / Ready / Cur
 
 Live synthetic interactions: Members search isolated seven Synthetic rows; Synthetic Blake's Courses shortcut opened the course section and Manage requirement opened the member-filtered Study Hours page. The expanded override retained required-hours, reason, and confirmation controls without submitting. `tests/fixtures/usability-roster.csv` produced three ready / two excluded rows, defaulted blank Status to Active, identified a duplicate and missing first name, and kept Import disabled without acknowledgment. Nothing was imported. Chair access to the Proctor form selected Synthetic Gray and a 0-hour / 30-minute duration; its save control became enabled, but no session was saved. Expanded Week 3 deadline fields remained readable and labeled; no deadline was changed.
 
-One fresh dashboard request reached the recovery screen. Try again restored the dashboard. Vercel's runtime log at 2026-09-13T13:20:13.870Z records `Could not load member academic status` (digest `2760687485`); the query helper deliberately fails closed when an academic-status read fails. The log does not identify the underlying query/provider cause. This failure did not recur in the subsequent 75 page/viewport checks. Record it as a recovered, unexplained read failure, not a fixed root cause or successful authorization test.
+Two fresh dashboard requests reached the recovery screen and recovered through Try again. Vercel's runtime log at 2026-09-13T13:20:13.870Z records `Could not load member academic status` (digest `2760687485`). The 75 page/viewport checks then passed without recurrence, but a post-deployment reload at 2026-09-13T13:32:57.809Z failed with `Could not load members` (digest `4065596909`) on follow-up deployment `68AXfJMM3`. The query helper deliberately fails closed when a read fails; existing logs do not identify the underlying query/provider cause. A minimal server-only diagnostic cause is being added: static operation label, bounded HTTP status, and validated database/API error-code shape only. Provider messages, response bodies, URLs, headers, credentials, and academic rows are not retained. No blind retry, secret-key shortcut, or RLS change was added. These are recovered but unresolved recurring read failures, not fixed root causes or successful authorization tests.
 
 ## 13. Pilot readiness
 
-The Chair interface has passed the documented deployed responsive checks, but the whole phase is not fully signed off for a real-member pilot. Separate synthetic Google accounts must still exercise the Member homepage/check-in/course flow and pure-Proctor logging/current-week edit/old-session lock. The complete separate-account authorization matrix remains deferred; automated RLS and mocked DOM coverage are not its replacement. Monitor the recovered read failure if it recurs. Do not automatically import the real roster or academic records.
+The Chair interface has passed the documented deployed responsive checks, but the whole phase is not fully signed off for a real-member pilot. Resolve or adequately characterize the recurring fresh-load read failures first. Separate synthetic Google accounts must still exercise the Member homepage/check-in/course flow and pure-Proctor logging/current-week edit/old-session lock. The complete separate-account authorization matrix remains deferred; automated RLS and mocked DOM coverage are not its replacement. Do not automatically import the real roster or academic records.
 
 No real roster/academic data was imported into Supabase by the agent in this phase, no external email delivery was enabled, no Notification Center/bell/inbox was built, and no credentials were committed by the agent. The agent left roster-import.csv untouched and excluded it from the usability commit; the user's subsequent manual commit tracks it. Existing non-synthetic member records were not used as mutation-test subjects. No database import was performed by the agent.

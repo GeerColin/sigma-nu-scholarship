@@ -3,6 +3,7 @@ import "server-only";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createReadFailure } from "@/lib/supabase/read-failure";
 
 export type MemberDirectoryFilters = {
   q?: string;
@@ -39,14 +40,22 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
   const supabase = await createClient();
   const period = await getActiveAcademicPeriod(context.chapterId!);
 
-  const { data: memberRows, error: memberError } = await supabase
+  const {
+    data: memberRows,
+    error: memberError,
+    status: memberStatus,
+  } = await supabase
     .from("members")
     .select(
       "id, full_name, status, profile_id, notification_email, member_roles(role, active)",
     )
     .eq("chapter_id", context.chapterId!)
     .order("full_name");
-  if (memberError) throw new Error("Could not load members.");
+  if (memberError) {
+    throw createReadFailure("Could not load members.", [
+      { operation: "members", error: memberError, status: memberStatus },
+    ]);
+  }
 
   const memberIds = (memberRows ?? []).map((member) => member.id);
   const weekId = period?.currentWeek?.id;
@@ -91,7 +100,12 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
     sessionsResult.error ||
     alertsResult.error
   ) {
-    throw new Error("Could not load member academic status.");
+    throw createReadFailure("Could not load member academic status.", [
+      { operation: "submissions", ...submissionsResult },
+      { operation: "assignments", ...assignmentsResult },
+      { operation: "sessions", ...sessionsResult },
+      { operation: "alerts", ...alertsResult },
+    ]);
   }
 
   const submissions = new Map(
