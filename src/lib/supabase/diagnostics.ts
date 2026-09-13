@@ -16,6 +16,9 @@ export type FailureCategory =
 
 export type DiagnosticOperation =
   | "auth"
+  | "auth_user"
+  | "auth_token"
+  | "auth_keys"
   | "member_linkage"
   | "access_request"
   | "members"
@@ -50,7 +53,26 @@ export function classifyFailure(
   status?: number,
 ): FailureCategory {
   const value = fields(error);
-  if (error instanceof ReadFailure) return error.category;
+  // React processing and separate Next.js server chunks can lose prototype
+  // identity. Accept only our marker AND an allowlisted category, never spread
+  // the processed error into logs or classify it solely by instanceof.
+  const categories: FailureCategory[] = [
+    "session_missing",
+    "session_invalid",
+    "transport",
+    "provider_unavailable",
+    "database",
+    "rls_denial",
+    "permission_denied",
+    "missing_linkage",
+    "timeout",
+    "unexpected_application",
+  ];
+  if (
+    value.name === "SupabaseReadFailure" &&
+    categories.includes(value.category as FailureCategory)
+  )
+    return value.category as FailureCategory;
   const cause = fields(value.cause);
   const message = typeof value.message === "string" ? value.message : "";
   const details = typeof value.details === "string" ? value.details : "";
@@ -235,6 +257,9 @@ function operationFor(input: Parameters<typeof fetch>[0]): DiagnosticOperation {
           ? input.href
           : input.url,
     ).pathname;
+    if (path === "/auth/v1/user") return "auth_user";
+    if (path === "/auth/v1/token") return "auth_token";
+    if (path === "/auth/v1/.well-known/jwks.json") return "auth_keys";
     if (path.startsWith("/auth/")) return "auth";
     const table = path.split("/").at(-1);
     const operations: Record<string, DiagnosticOperation> = {

@@ -47,24 +47,27 @@ describe("fail-closed authenticated context reads", () => {
     expect(await getCurrentUserContext()).toBeNull();
     expect(from).not.toHaveBeenCalled();
   });
-  it("does not mistake an auth transport failure for a signed-out session", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const from = mockClient(
-      {
-        data: { user: null },
-        error: {
-          name: "AuthRetryableFetchError",
-          status: 0,
-          message: "synthetic-private-provider-message",
+  it.each([0, 504])(
+    "does not mistake an auth transport/provider failure (%s) for a signed-out session",
+    async (status) => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const from = mockClient(
+        {
+          data: { user: null },
+          error: {
+            name: "AuthRetryableFetchError",
+            status,
+            message: "synthetic-private-provider-message",
+          },
         },
-      },
-      {},
-    );
-    await expect(getCurrentUserContext()).rejects.toThrow(
-      "Could not verify your sign-in.",
-    );
-    expect(from).not.toHaveBeenCalled();
-  });
+        {},
+      );
+      await expect(getCurrentUserContext()).rejects.toThrow(
+        "Could not verify your sign-in.",
+      );
+      expect(from).not.toHaveBeenCalled();
+    },
+  );
   it.each(["members", "access_requests"])(
     "does not silently turn a failed %s lookup into missing linkage",
     async (table) => {

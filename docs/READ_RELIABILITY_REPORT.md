@@ -4,7 +4,25 @@ Date: 2026-09-13. Scope: the approved UI is unchanged. No roster/academic import
 
 ## Current conclusion
 
-Investigation in progress. Historical production failures on 2026-09-13 are confirmed: member academic status at 13:20:13 UTC and member directory at 13:32:57 UTC. Both recovered through explicit Try again. Their original generic errors do not identify an underlying cause. Neither diagnostic improvements nor successful later loads prove a fix.
+The failure reproduced on the first fresh Dashboard navigation after diagnostic deployment `d2bebe9` / Vercel `HgDUu9MxPPcWQmbkWJAT7RKo8fuD`. It is reliably classified as upstream Supabase gateway HTTP 504, not fixed. Supabase's internal reason for the gateway timeouts is unknown.
+
+The two original generic errors now have corresponding Supabase gateway 504 records on their actual read endpoints. No evidence establishes missing cookies, client hydration, RLS denial, missing linkage, or a Vercel function timeout as their cause. Successful later loads cannot erase these failures.
+
+## Correlated production evidence
+
+Only safe operation/status/time metadata is retained; no gateway request query strings, headers, cookies, response bodies, identifiers, or academic records are copied into this report.
+
+| Occurrence                       | Vercel invocation start (UTC) | Supabase gateway record (UTC) | Static endpoint                   | Gateway status |
+| -------------------------------- | ----------------------------- | ----------------------------- | --------------------------------- | -------------: |
+| Original academic-status error   | 2026-09-13 13:20:13.870       | 2026-09-13 13:20:14           | `/rest/v1/study_hour_assignments` |            504 |
+| Original member-directory error  | 2026-09-13 13:32:57.809       | 2026-09-13 13:33:00           | `/rest/v1/members`                |            504 |
+| Reproduced fresh Dashboard error | 2026-09-13 19:30:07.395       | 2026-09-13 19:30:08           | `/auth/v1/user`                   |            504 |
+
+For the reproduced invocation, Vercel's safe diagnostic events at 19:30:13.430 UTC report operation `auth`, category `provider_unavailable`, HTTP 504, duration 5,107 ms, session state `unknown`, and no recognized database/transport code. Identity verification had not completed; chapter/academic reads were not reached. The browser rendered the fail-closed recovery boundary, although Vercel's streamed response status was 200. Error digest: `3270843173`.
+
+Supabase's last-24-hours gateway error filter showed five 5xx records, all HTTP 504: the three above plus member-linkage at 04:23:02 UTC and JWKS at 04:20:11 UTC. Its visible Auth-service log had a completed JWKS request at 19:30:08 UTC but no corresponding completed `/user` operation or Auth-service 5xx. Absence of a log is not proof that the request never reached Auth; provider-side tracing is needed. These observations support a provider/gateway availability category across Auth and PostgREST, not an established internal database-pool, region, compute, or cold-start cause.
+
+The request-error fallback initially lost the known error's category because Next.js/React processing or separate server chunks did not preserve prototype identity. It is corrected to recognize only the static `SupabaseReadFailure` marker plus an allowlisted category. Auth request diagnostics now distinguish user verification, token refresh, and JWKS using static operation names, never URLs. This improves diagnostic accuracy; it does not fix the upstream 504.
 
 ## Code and dependency evidence
 
@@ -40,11 +58,11 @@ No credentials, headers, cookies (including names), URLs, query strings, respons
 
 ## Verification and production attempts
 
-Release gates passed: 129 unit tests across 22 files with one isolated worker; 182 local and 182 hosted rollback-only pgTAP/RLS checks across 13 files each; ESLint; strict TypeScript; repository formatting; production build; and whitespace verification. Diagnostic markers (`supabase_read_failure`, `transport_code`, `Read failures:`) are absent from `.next/static` browser bundles.
+Release gates passed: 132 unit tests across 22 files with one isolated worker; 182 local and 182 hosted rollback-only pgTAP/RLS checks across 13 files each; ESLint; strict TypeScript; repository formatting; production build; and whitespace verification. Diagnostic markers (`supabase_read_failure`, `transport_code`, `Read failures:`) are absent from `.next/static` browser bundles. Regression coverage includes the exact Auth HTTP 504 fail-closed path and category preservation after prototype identity is lost.
 
 Seven baseline authenticated fresh navigations before the new deployment passed: Dashboard, Members, reserved synthetic Member Detail, This Week, Study Hours, Analytics, and Administration. No Try again/error boundary appeared. A browser automation selector wait timed out while the Study Hours heading was already visible; the subsequent direct DOM observation confirmed the page loaded. This automation deadline is not counted as an application read failure.
 
-Pending deployment verification and post-deployment stress results. Use one browser tab to limit RAM. Detail navigation targets only the existing reserved synthetic member fixture. Desktop and mobile viewport checks exercise responsive rendering, not separate browser identities.
+The first desktop (1366×768) post-deployment fresh Dashboard navigation failed and the stress run stopped for log correlation before any manual retry. That is eight counted authenticated fresh attempts so far: seven passed, one failed. Pending diagnostic-classification follow-up deployment and further counted stress results. Use one browser tab to limit RAM. Detail navigation targets only the existing reserved synthetic member fixture. Desktop and mobile viewport checks exercise responsive rendering, not separate browser identities.
 
 A cold browser-session check requires a user-created clean browser session because the connector exposes no private/isolated-context capability. Logout/login is recorded separately, not represented as a cold-browser test.
 

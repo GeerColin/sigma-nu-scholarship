@@ -180,4 +180,40 @@ describe("privacy-safe production read classification", () => {
       classifyFailure(new ReadFailure("Could not load members.", "transport")),
     ).toBe("transport");
   });
+
+  it("preserves classification when React/chunk processing loses prototype identity", () => {
+    expect(
+      classifyFailure({
+        name: "SupabaseReadFailure",
+        category: "provider_unavailable",
+      }),
+    ).toBe("provider_unavailable");
+    expect(
+      classifyFailure({
+        name: "SupabaseReadFailure",
+        category: "synthetic-secret",
+      }),
+    ).toBe("unexpected_application");
+    expect(
+      classifyFailure({ name: "Error", category: "provider_unavailable" }),
+    ).toBe("unexpected_application");
+  });
+
+  it("distinguishes user verification from token refresh without logging URL content", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 504 }));
+    const observer = diagnosticFetch(createDiagnosticState(), fetcher);
+    await observer("https://synthetic.invalid/auth/v1/user");
+    await observer(
+      "https://synthetic.invalid/auth/v1/token?grant_type=synthetic-private-grant",
+    );
+    expect(
+      warn.mock.calls.map((call) => JSON.parse(String(call[0])).operation),
+    ).toEqual(["auth_user", "auth_token"]);
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(
+      "synthetic-private-grant",
+    );
+  });
 });
