@@ -13,15 +13,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getMemberDirectory } from "@/features/members/queries";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createReadFailure } from "@/lib/supabase/read-failure";
 
 export default async function DashboardPage() {
   const context = await requireChairContext();
   const { members, period } = await getMemberDirectory({ filter: "active" });
   const supabase = await createClient();
   const [
-    { count: openAlertCount, error: alertError },
+    { count: openAlertCount, error: alertError, status: alertStatus },
     { data: customCourses, error: customCourseError },
-    { data: customReviews, error: customReviewError },
+    { data: customReviews, error: customReviewError, status: reviewStatus },
   ] = await Promise.all([
     supabase
       .from("academic_alerts")
@@ -43,7 +44,15 @@ export default async function DashboardPage() {
       .eq("chapter_id", context.chapterId!),
   ]);
   if (alertError || customCourseError || customReviewError) {
-    throw new Error("Could not load dashboard metrics.");
+    throw createReadFailure("Could not load dashboard metrics.", [
+      { operation: "alerts", error: alertError, status: alertStatus },
+      { operation: "courses", error: customCourseError },
+      {
+        operation: "custom_reviews",
+        error: customReviewError,
+        status: reviewStatus,
+      },
+    ]);
   }
 
   const reviewedCustomCourseIds = new Set(

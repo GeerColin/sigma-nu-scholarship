@@ -285,7 +285,11 @@ export async function getMemberDetail(memberId: string) {
   const supabase = await createClient();
   const period = await getActiveAcademicPeriod(context.chapterId!);
 
-  const { data: member, error: memberError } = await supabase
+  const {
+    data: member,
+    error: memberError,
+    status: memberStatus,
+  } = await supabase
     .from("members")
     .select(
       "id, full_name, status, profile_id, notification_email, profiles(email, display_name), member_roles(role, active)",
@@ -293,7 +297,10 @@ export async function getMemberDetail(memberId: string) {
     .eq("id", memberId)
     .eq("chapter_id", context.chapterId!)
     .maybeSingle();
-  if (memberError) throw new Error("Could not load the member profile.");
+  if (memberError)
+    throw createReadFailure("Could not load the member profile.", [
+      { operation: "members", error: memberError, status: memberStatus },
+    ]);
   if (!member) return null;
 
   const semesterId = period?.semester.id;
@@ -364,7 +371,14 @@ export async function getMemberDetail(memberId: string) {
     alertsResult.error ||
     customReviewsResult.error
   ) {
-    throw new Error("Could not load the member’s academic details.");
+    throw createReadFailure("Could not load the member’s academic details.", [
+      { operation: "courses", ...coursesResult },
+      { operation: "submissions", ...submissionsResult },
+      { operation: "assignments", ...assignmentResult },
+      { operation: "sessions", ...sessionsResult },
+      { operation: "alerts", ...alertsResult },
+      { operation: "custom_reviews", ...customReviewsResult },
+    ]);
   }
 
   const submissions: MemberDetail["submissions"] = (

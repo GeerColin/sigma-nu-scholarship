@@ -9,6 +9,7 @@ import {
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createReadFailure } from "@/lib/supabase/read-failure";
 
 function hours(minutes: number) {
   return (minutes / 60).toLocaleString(undefined, {
@@ -42,10 +43,10 @@ export default async function AnalyticsPage() {
 
   if (period) {
     const [
-      { data: weeks, error: weeksError },
-      { data: submissions, error: submissionsError },
-      { data: members, error: memberError },
-      { data: entries, error: entryError },
+      { data: weeks, error: weeksError, status: weeksStatus },
+      { data: submissions, error: submissionsError, status: submissionsStatus },
+      { data: members, error: memberError, status: membersStatus },
+      { data: entries, error: entryError, status: entriesStatus },
       { data: assignments, error: assignmentError },
       { data: sessions, error: sessionError },
     ] = await Promise.all([
@@ -96,7 +97,18 @@ export default async function AnalyticsPage() {
       assignmentError ||
       sessionError
     ) {
-      throw new Error("Could not load chapter analytics.");
+      throw createReadFailure("Could not load chapter analytics.", [
+        { operation: "week", error: weeksError, status: weeksStatus },
+        {
+          operation: "submissions",
+          error: submissionsError,
+          status: submissionsStatus,
+        },
+        { operation: "members", error: memberError, status: membersStatus },
+        { operation: "other_read", error: entryError, status: entriesStatus },
+        { operation: "assignments", error: assignmentError },
+        { operation: "sessions", error: sessionError },
+      ]);
     }
 
     const weekIds = new Set((weeks ?? []).map((week) => week.id));

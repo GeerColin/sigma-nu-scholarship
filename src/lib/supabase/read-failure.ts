@@ -1,8 +1,21 @@
 import "server-only";
+import {
+  classifyFailure,
+  recordFailure,
+  safeCode,
+  safeStatus,
+  ReadFailure,
+  type DiagnosticOperation,
+} from "@/lib/supabase/diagnostics";
 
 type ReadResult = {
-  operation: "members" | "submissions" | "assignments" | "sessions" | "alerts";
-  error: { code?: unknown } | null;
+  operation: DiagnosticOperation;
+  error: {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+    name?: unknown;
+  } | null;
   status?: number;
 };
 
@@ -12,20 +25,16 @@ export function createReadFailure(message: string, reads: ReadResult[]): Error {
   const failures = reads
     .filter((read) => read.error)
     .map(({ operation, error, status }) => {
-      const rawCode = error?.code;
-      const code =
-        typeof rawCode === "string" &&
-        /^(?:[A-Z0-9]{5}|PGRST[0-9]{3})$/.test(rawCode)
-          ? rawCode
-          : "UNKNOWN";
-      const httpStatus =
-        Number.isInteger(status) && status! >= 0 && status! <= 599
-          ? status
-          : "UNKNOWN";
+      recordFailure(operation, classifyFailure(error, status), error, status);
+      const code = safeCode(error);
+      const httpStatus = safeStatus(status);
       return `${operation}[status=${httpStatus}, code=${code}]`;
     });
 
-  return new Error(message, {
-    cause: new Error(`Read failures: ${failures.join("; ")}`),
-  });
+  const first = reads.find((read) => read.error);
+  return new ReadFailure(
+    message,
+    classifyFailure(first?.error, first?.status),
+    new Error(`Read failures: ${failures.join("; ")}`),
+  );
 }

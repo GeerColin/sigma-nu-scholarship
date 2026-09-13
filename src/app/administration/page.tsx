@@ -5,14 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { createReadFailure } from "@/lib/supabase/read-failure";
 
 export default async function AdministrationPage() {
   const context = await requireChairContext();
   const supabase = await createClient();
   const [
-    { count: pendingCount, error: requestError },
-    { data: roles, error: roleError },
-    { count: auditCount, error: auditError },
+    { count: pendingCount, error: requestError, status: requestStatus },
+    { data: roles, error: roleError, status: rolesStatus },
+    { count: auditCount, error: auditError, status: auditStatus },
   ] = await Promise.all([
     supabase
       .from("access_requests")
@@ -30,7 +31,15 @@ export default async function AdministrationPage() {
       .eq("chapter_id", context.chapterId!),
   ]);
   if (requestError || roleError || auditError) {
-    throw new Error("Could not load administration status.");
+    throw createReadFailure("Could not load administration status.", [
+      {
+        operation: "access_request",
+        error: requestError,
+        status: requestStatus,
+      },
+      { operation: "other_read", error: roleError, status: rolesStatus },
+      { operation: "other_read", error: auditError, status: auditStatus },
+    ]);
   }
   const proctorCount = (roles ?? []).filter(
     (role) => role.role === "proctor",

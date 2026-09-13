@@ -92,7 +92,7 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [~] Security, error/loading, empty-state, and backup/export review; the ZIP structure is unit-tested, the authenticated production export endpoint is exposed, and the full automated suite is green
 - [!] Production Supabase, Google OAuth, and Vercel are configured; configure Resend and optional custom DNS when production email or a custom domain is required
 
-## Usability phase — 2026-09-12
+## Usability phase — 2026-09-12 (complete and user-approved)
 
 - [x] Action-first Member homepage with real required/overdue/completed/late state, direct grade actions, deadline, study progress, and Estimated [Semester] GPA disclaimer
 - [x] Conditional course grading/scale fields, archive acknowledgment, course-specific check-in labels, prefill/revision clarity, and pending submit feedback
@@ -105,7 +105,18 @@ Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` exter
 - [x] Published usability commit `b45e65b` after explicit approval. GitHub's Vercel status reports success for the subsequent user commit `2e5c63b` on 2026-09-13; that commit adds only roster-import.csv, not application code. This is deployment metadata verification, not live visual verification.
 - [x] After explicit retry approval, new deployed Chair checks on 2026-09-13: 17 routes at each of 390×844, 430×932, 768×1024, 1366×768, and 1920×1080 (85 measurements), with no document-level horizontal overflow. Populated synthetic CSV preview and unsaved Proctor form also fit all five sizes. Mobile menu/keyboard focus, synthetic profile shortcuts, GPA filtering/empty state, override controls, chart labels, and expanded deadline editor inspected without database mutations. Account Requests and Audit Log were included in the additional ten measurements.
 - [!] Two fresh dashboard loads failed and recovered through Try again: academic-status read at 13:20:13 UTC and member-directory read at 13:32:57 UTC on 2026-09-13. The intervening 75 measurements passed, but fresh-load reliability is not signed off. Minimal redacted server-only diagnostics passed unit/lint/type/format/build verification, are absent from browser bundles, and deployed successfully as `0731f50`. Three fresh loads succeeded; the deployment's 09:46 EDT runtime log window reported zero errors, so a new diagnostic failure cause could not be captured. No blind retry, RLS change, or root-cause fix is claimed.
-- [!] Keep the phase open for live Member and pure-Proctor synthetic-account usability workflows. Chair access to Proctor controls and mocked DOM tests do not establish pure-role behavior. Separate synthetic Google-account identities remain required for the complete OAuth/browser role matrix; no RLS bypass or impersonation will be used.
+- [x] Usability/UI phase accepted by the user. Further visual changes are out of scope. The separately deferred synthetic-account OAuth role matrix is not reopened as a UI-phase requirement; existing database/RLS evidence remains distinct from separate-account browser evidence.
+
+## Fresh-load production read investigation — 2026-09-13
+
+- [~] Focused reliability investigation; the two earlier fresh-dashboard failures remain confirmed historical incidents, not a diagnosed root cause.
+- [x] Found an error-handling gap: authenticated member/access-request lookup errors were discarded and could be mistaken for missing linkage. Failed lookups now throw a plain fail-closed error; successful unlinked-account reads retain their existing restricted behavior.
+- [x] Added server-only, explicitly allowlisted diagnostic categories, static operations, sanitized SQLSTATE/PostgREST and transport codes, HTTP status, attempt duration, ephemeral diagnostic/instance IDs, and session-verification state. No credentials, cookies, headers, URLs, query parameters, response bodies, row counts, user identifiers, or academic rows are emitted.
+- [x] Observes failed underlying fetch attempts without changing fetch options, caching, cancellation, or the installed SDK's existing bounded retry policy. No new retry loop, privileged read client, RLS policy, database migration, or visual change.
+- [x] Proxy now preserves the refresh-time cache headers supplied by the installed Supabase SSR library, including subsequent callback writes. This is a verified implementation gap, not proof of the historical read-failure root cause.
+- [x] Regression/release gates pass: 129 unit tests, 182 local and 182 hosted rollback-only PostgreSQL/RLS checks, lint, strict TypeScript, formatting, build, whitespace check, and browser-bundle diagnostic-marker exclusion.
+- [~] Seven baseline authenticated production fresh navigations passed; deployment verification and post-deployment stress results are recorded in [READ_RELIABILITY_REPORT.md](READ_RELIABILITY_REPORT.md).
+- [!] A genuinely cold/isolated browser context is not supplied by the current browser connector (only visibility and viewport capabilities). A new tab or mobile viewport is not an isolated browser session. Do not claim cold-browser verification without a user-created clean session.
 
 See [USABILITY_REPORT.md](USABILITY_REPORT.md) for changes, evidence, deferred checks, and pilot-readiness assessment. No database migrations, real roster import into Supabase, real academic data import, external email activation, or notification-center feature were added. The agent excluded roster-import.csv from the usability commit; the user's subsequent manual commit tracks it. It was not imported into the application database.
 

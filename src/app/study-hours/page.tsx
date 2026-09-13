@@ -15,6 +15,7 @@ import {
 } from "@/features/study-hours/actions";
 import { DEFAULT_STUDY_HOUR_RULES } from "@/lib/domain/study-hours";
 import { createClient } from "@/lib/supabase/server";
+import { createReadFailure } from "@/lib/supabase/read-failure";
 
 const filters = [
   "all",
@@ -59,14 +60,21 @@ export default async function StudyHoursPage({
     : "all";
   const { members, period } = await getMemberDirectory({ filter: "active" });
   const supabase = await createClient();
-  const { data: activeRule, error: activeRuleError } = await supabase
+  const {
+    data: activeRule,
+    error: activeRuleError,
+    status: ruleStatus,
+  } = await supabase
     .from("study_hour_rule_sets")
     .select(
       "id, version, d_adjustment_hours, f_adjustment_hours, maximum_hours, study_hour_bands(minimum_gpa, maximum_gpa, base_hours, sort_order)",
     )
     .eq("active", true)
     .maybeSingle();
-  if (activeRuleError) throw new Error("Could not load study-hour rules.");
+  if (activeRuleError)
+    throw createReadFailure("Could not load study-hour rules.", [
+      { operation: "other_read", error: activeRuleError, status: ruleStatus },
+    ]);
   const activeBands = [...(activeRule?.study_hour_bands ?? [])].sort(
     (left, right) => left.sort_order - right.sort_order,
   );
