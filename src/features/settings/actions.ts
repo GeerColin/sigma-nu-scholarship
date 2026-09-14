@@ -8,11 +8,33 @@ import {
   deadlineOverrideSchema,
   saveEmailTemplateSchema,
   semesterSchema,
+  manageSemesterSchema,
 } from "@/features/settings/validation";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
 const settingsPath = "/settings";
+
+export async function manageSemester(formData: FormData) {
+  await requireChairContext();
+  const parsed = manageSemesterSchema.safeParse({
+    semesterId: formData.get("semesterId"),
+    operation: formData.get("operation"),
+    name: formData.get("name") ?? "",
+    confirmed: formData.get("confirmed"),
+  });
+  if (!parsed.success)
+    redirect(`${settingsPath}?error=invalid-semester-management`);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("manage_semester", {
+    target_semester_id: parsed.data.semesterId,
+    requested_operation: parsed.data.operation,
+    new_name: parsed.data.name || null,
+  });
+  if (error) redirect(`${settingsPath}?error=semester-management-failed`);
+  revalidatePath("/", "layout");
+  redirect(`${settingsPath}?status=semester-managed`);
+}
 
 export async function createSemester(formData: FormData) {
   await requireChairContext();

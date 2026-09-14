@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   activateSemester,
   createSemester,
+  manageSemester,
   overrideAcademicWeekDeadline,
 } from "@/features/settings/actions";
 import { ChapterConfiguration } from "@/features/settings/chapter-configuration";
@@ -25,6 +26,7 @@ const weekdays = [
 
 const statusMessages: Record<string, string> = {
   "semester-created": "The semester and its academic weeks were created.",
+  "semester-managed": "The semester change was saved and audited.",
   "semester-activated": "The selected semester is now active.",
   "deadline-updated": "The academic-week deadline was updated.",
   "configuration-updated": "Chapter configuration was updated and audited.",
@@ -42,7 +44,7 @@ function formatDeadline(value: string, timeZone: string) {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; archived?: string }>;
 }) {
   const context = await requireChairContext();
   const query = await searchParams;
@@ -50,7 +52,7 @@ export default async function SettingsPage({
   const { data: semesters, error } = await supabase
     .from("semesters")
     .select(
-      "id, name, start_date, end_date, timezone, default_deadline_weekday, default_deadline_time, active, academic_weeks(id, sequence_number, label, starts_on, ends_on, deadline_at, deadline_overridden)",
+      "id, name, start_date, end_date, timezone, default_deadline_weekday, default_deadline_time, active, archived_at, academic_weeks(id, sequence_number, label, starts_on, ends_on, deadline_at, deadline_overridden)",
     )
     .eq("chapter_id", context.chapterId!)
     .order("start_date", { ascending: false });
@@ -78,8 +80,9 @@ export default async function SettingsPage({
           role="alert"
           className="mb-5 rounded-xl bg-[var(--danger-soft)] p-4 font-semibold text-[var(--danger)]"
         >
-          We couldn’t save that semester change. Nothing was overwritten. Check
-          the dates, timezone, and deadline before trying again.
+          {query.error === "semester-management-failed"
+            ? "The semester change could not be saved. Semesters with dependent records cannot be deleted; archive them instead. Names must be unique. No partial change was saved."
+            : "We couldn’t save that semester change. Check the form and confirmation before trying again."}
         </p>
       )}
 
@@ -200,137 +203,212 @@ export default async function SettingsPage({
         </Card>
 
         <div className="space-y-5">
-          {(semesters ?? []).map((semester) => (
-            <Card key={semester.id}>
-              <CardHeader>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-bold text-[var(--navy)]">
-                      {semester.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      {semester.start_date} through {semester.end_date} ·{" "}
-                      {semester.timezone}
-                    </p>
+          <a
+            href={
+              query.archived === "yes" ? "/settings" : "/settings?archived=yes"
+            }
+            className="inline-block py-3 font-semibold underline"
+          >
+            {query.archived === "yes"
+              ? "Hide archived semesters"
+              : "Show archived semesters"}
+          </a>
+          {(semesters ?? [])
+            .filter((s) => query.archived === "yes" || !s.archived_at)
+            .map((semester) => (
+              <Card key={semester.id}>
+                <CardHeader>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-[var(--navy)]">
+                        {semester.name}
+                      </h2>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {semester.start_date} through {semester.end_date} ·{" "}
+                        {semester.timezone}
+                      </p>
+                    </div>
+                    {semester.archived_at ? (
+                      <Badge>Archived</Badge>
+                    ) : semester.active ? (
+                      <Badge tone="success">Active</Badge>
+                    ) : (
+                      <form action={activateSemester}>
+                        <input
+                          type="hidden"
+                          name="semesterId"
+                          value={semester.id}
+                        />
+                        <Button
+                          type="submit"
+                          className="bg-transparent text-[var(--navy)] shadow-none ring-1 ring-[var(--border)] hover:bg-[var(--surface-subtle)]"
+                        >
+                          Make active
+                        </Button>
+                      </form>
+                    )}
                   </div>
-                  {semester.active ? (
-                    <Badge tone="success">Active</Badge>
-                  ) : (
-                    <form action={activateSemester}>
+                </CardHeader>
+                <details>
+                  <summary className="cursor-pointer border-t px-5 py-3 font-semibold">
+                    Manage semester
+                  </summary>
+                  <form
+                    action={manageSemester}
+                    className="space-y-3 border-t p-5"
+                  >
+                    <input
+                      type="hidden"
+                      name="semesterId"
+                      value={semester.id}
+                    />
+                    <label className="block">
+                      Semester name
                       <input
-                        type="hidden"
-                        name="semesterId"
-                        value={semester.id}
+                        name="name"
+                        defaultValue={semester.name}
+                        maxLength={100}
+                        className="mt-1 block w-full rounded border p-2"
                       />
-                      <Button
-                        type="submit"
-                        className="bg-transparent text-[var(--navy)] shadow-none ring-1 ring-[var(--border)] hover:bg-[var(--surface-subtle)]"
+                    </label>
+                    <label className="block">
+                      Action
+                      <select
+                        name="operation"
+                        className="mt-1 block w-full rounded border p-2"
                       >
-                        Make active
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              </CardHeader>
-              <details open={semester.active}>
-                <summary className="min-h-11 cursor-pointer border-t px-5 py-3 font-semibold text-[var(--navy)]">
-                  {semester.active
-                    ? "View weekly deadlines"
-                    : "View semester weeks"}
-                </summary>
-                <div className="divide-y border-t">
-                  {(
-                    semester.academic_weeks as Array<{
-                      id: string;
-                      sequence_number: number;
-                      label: string;
-                      starts_on: string;
-                      ends_on: string;
-                      deadline_at: string;
-                      deadline_overridden: boolean;
-                    }>
-                  )
-                    .toSorted((a, b) => a.sequence_number - b.sequence_number)
-                    .map((week) => (
-                      <article
-                        key={week.id}
-                        className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-end"
-                      >
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-bold text-[var(--navy)]">
-                              {week.label}
+                        <option value="rename">Save name correction</option>
+                        <option
+                          value={semester.archived_at ? "restore" : "archive"}
+                        >
+                          {semester.archived_at
+                            ? "Restore to list (inactive)"
+                            : "Archive and deactivate"}
+                        </option>
+                        <option value="delete">
+                          Permanently delete unused semester
+                        </option>
+                      </select>
+                    </label>
+                    <p className="text-sm text-[var(--muted)]">
+                      Archiving preserves records and removes the semester from
+                      the default list. Deletion removes generated weeks only if
+                      there are no dependent records. Calendar dates and
+                      timezone remain unchanged to protect history; delete an
+                      unused mistaken calendar and recreate it.
+                    </p>
+                    <label className="flex gap-2">
+                      <input
+                        type="checkbox"
+                        name="confirmed"
+                        value="yes"
+                        required
+                      />
+                      I confirm the selected action. Deletion is permanent;
+                      archiving an active semester stops its active workflows.
+                    </label>
+                    <Button type="submit">Apply semester change</Button>
+                  </form>
+                </details>
+                <details open={semester.active}>
+                  <summary className="min-h-11 cursor-pointer border-t px-5 py-3 font-semibold text-[var(--navy)]">
+                    {semester.active
+                      ? "View weekly deadlines"
+                      : "View semester weeks"}
+                  </summary>
+                  <div className="divide-y border-t">
+                    {(
+                      semester.academic_weeks as Array<{
+                        id: string;
+                        sequence_number: number;
+                        label: string;
+                        starts_on: string;
+                        ends_on: string;
+                        deadline_at: string;
+                        deadline_overridden: boolean;
+                      }>
+                    )
+                      .toSorted((a, b) => a.sequence_number - b.sequence_number)
+                      .map((week) => (
+                        <article
+                          key={week.id}
+                          className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-end"
+                        >
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-bold text-[var(--navy)]">
+                                {week.label}
+                              </p>
+                              {week.deadline_overridden && (
+                                <Badge tone="warning">Overridden</Badge>
+                              )}
+                            </div>
+                            <p className="mt-1 text-sm text-[var(--muted)]">
+                              {week.starts_on}–{week.ends_on} · Deadline{" "}
+                              {formatDeadline(
+                                week.deadline_at,
+                                semester.timezone,
+                              )}
                             </p>
-                            {week.deadline_overridden && (
-                              <Badge tone="warning">Overridden</Badge>
-                            )}
                           </div>
-                          <p className="mt-1 text-sm text-[var(--muted)]">
-                            {week.starts_on}–{week.ends_on} · Deadline{" "}
-                            {formatDeadline(
-                              week.deadline_at,
-                              semester.timezone,
-                            )}
-                          </p>
-                        </div>
-                        {semester.active && (
-                          <details className="rounded-xl border">
-                            <summary className="min-h-11 cursor-pointer px-3 py-2.5 font-semibold text-[var(--navy)]">
-                              Change deadline
-                            </summary>
-                            <form
-                              action={overrideAcademicWeekDeadline}
-                              className="grid gap-2 border-t p-3 sm:grid-cols-2"
-                            >
-                              <input
-                                type="hidden"
-                                name="weekId"
-                                value={week.id}
-                              />
-                              <label>
-                                <span className="sr-only">
-                                  New deadline date for {week.label}
-                                </span>
+                          {semester.active && (
+                            <details className="rounded-xl border">
+                              <summary className="min-h-11 cursor-pointer px-3 py-2.5 font-semibold text-[var(--navy)]">
+                                Change deadline
+                              </summary>
+                              <form
+                                action={overrideAcademicWeekDeadline}
+                                className="grid gap-2 border-t p-3 sm:grid-cols-2"
+                              >
                                 <input
-                                  name="deadlineDate"
-                                  required
-                                  type="date"
-                                  min={week.starts_on}
-                                  max={week.ends_on}
-                                  defaultValue={dateInTimeZone(
-                                    new Date(week.deadline_at),
-                                    semester.timezone,
-                                  )}
-                                  className="min-h-11 w-full rounded-xl border px-3"
+                                  type="hidden"
+                                  name="weekId"
+                                  value={week.id}
                                 />
-                              </label>
-                              <label>
-                                <span className="sr-only">
-                                  New deadline time for {week.label}
-                                </span>
-                                <input
-                                  name="deadlineTime"
-                                  required
-                                  type="time"
-                                  defaultValue={timeInTimeZone(
-                                    new Date(week.deadline_at),
-                                    semester.timezone,
-                                  )}
-                                  className="min-h-11 w-full rounded-xl border px-3"
-                                />
-                              </label>
-                              <Button type="submit" className="sm:col-span-2">
-                                Update deadline
-                              </Button>
-                            </form>
-                          </details>
-                        )}
-                      </article>
-                    ))}
-                </div>
-              </details>
-            </Card>
-          ))}
+                                <label>
+                                  <span className="sr-only">
+                                    New deadline date for {week.label}
+                                  </span>
+                                  <input
+                                    name="deadlineDate"
+                                    required
+                                    type="date"
+                                    min={week.starts_on}
+                                    max={week.ends_on}
+                                    defaultValue={dateInTimeZone(
+                                      new Date(week.deadline_at),
+                                      semester.timezone,
+                                    )}
+                                    className="min-h-11 w-full rounded-xl border px-3"
+                                  />
+                                </label>
+                                <label>
+                                  <span className="sr-only">
+                                    New deadline time for {week.label}
+                                  </span>
+                                  <input
+                                    name="deadlineTime"
+                                    required
+                                    type="time"
+                                    defaultValue={timeInTimeZone(
+                                      new Date(week.deadline_at),
+                                      semester.timezone,
+                                    )}
+                                    className="min-h-11 w-full rounded-xl border px-3"
+                                  />
+                                </label>
+                                <Button type="submit" className="sm:col-span-2">
+                                  Update deadline
+                                </Button>
+                              </form>
+                            </details>
+                          )}
+                        </article>
+                      ))}
+                  </div>
+                </details>
+              </Card>
+            ))}
           {!semesters?.length && (
             <Card>
               <CardContent>

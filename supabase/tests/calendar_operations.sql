@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(10);
+select plan(24);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values ('70000000-0000-4000-8000-000000000001', 'calendar-chair@example.test', '{}', '{"full_name":"Calendar Chair"}', 'authenticated', 'authenticated');
@@ -27,6 +27,28 @@ select is((select name from public.semesters where active), 'Fall Synthetic', 'i
 select lives_ok($$select public.activate_semester((select id from public.semesters where name = 'Spring Synthetic'))$$, 'Chair can explicitly activate another semester');
 select lives_ok($$select public.override_academic_week_deadline((select id from public.academic_weeks where semester_id = (select id from public.semesters where name = 'Spring Synthetic')), '2027-01-14', '18:30')$$, 'Chair can override a deadline inside its academic week');
 
+select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Spring Synthetic'), 'rename', 'Corrected Spring')$$, 'Chair can correct semester name');
+select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Corrected Spring'), 'archive')$$, 'Chair can archive active semester');
+select is((select count(*)::integer from public.semesters where active), 0, 'archiving deactivates semester');
+select throws_ok($$select public.activate_semester((select id from public.semesters where name = 'Corrected Spring'))$$, '23514', null, 'archived semester cannot become active');
+select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Corrected Spring'), 'restore')$$, 'Chair can restore archived semester');
+select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Corrected Spring'), 'delete')$$, 'unused semester and generated weeks can be deleted');
+select is((select count(*)::integer from public.academic_weeks), 3, 'deletion preserves other semester weeks');
+insert into public.courses(chapter_id,member_id,semester_id,name,credit_hours,grading_type)
+select chapter_id, public.current_member_id(), id, 'Synthetic Protected Course', 3, 'percentage' from public.semesters where name = 'Fall Synthetic';
+select throws_ok($$select public.manage_semester((select id from public.semesters where name = 'Fall Synthetic'), 'delete')$$, '23503', null, 'course history blocks deletion');
+select is((select count(*)::integer from public.academic_weeks), 3, 'failed deletion rolls back week removal');
+select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Fall Synthetic'), 'archive')$$, 'semester with course history can be archived');
+select is((select count(*)::integer from public.courses), 1, 'archive preserves academic records');
+select throws_ok($$update public.semesters set name = 'Bypass'$$, '42501', null, 'direct writes cannot bypass audited RPC');
+select set_config('request.jwt.claim.sub', '70000000-0000-4000-8000-000000000099', true);
+select throws_ok($$select public.manage_semester((select id from public.semesters limit 1), 'archive')$$, 'P0001', 'Not authorized', 'unlinked account cannot manage semesters');
+set local role postgres;
+update public.member_roles set active = false where role = 'scholarship_chair' and member_id = '70000000-0000-4000-8000-000000000011';
+insert into public.member_roles(chapter_id,member_id,role) values ('70000000-0000-4000-8000-000000000010','70000000-0000-4000-8000-000000000011','admin');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '70000000-0000-4000-8000-000000000001', true);
+select throws_ok($$select public.manage_semester((select id from public.semesters limit 1), 'restore')$$, 'P0001', 'Not authorized', 'Admin cannot use Chair-only management');
+
 select * from finish();
 rollback;
-

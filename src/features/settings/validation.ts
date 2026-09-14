@@ -20,6 +20,18 @@ export const activateSemesterSchema = z.object({
   semesterId: z.string().uuid(),
 });
 
+export const manageSemesterSchema = z
+  .object({
+    semesterId: z.string().uuid(),
+    operation: z.enum(["rename", "archive", "restore", "delete"]),
+    name: z.string().trim().max(100),
+    confirmed: z.literal("yes"),
+  })
+  .refine((value) => value.operation !== "rename" || value.name.length > 0, {
+    path: ["name"],
+    message: "Enter a semester name.",
+  });
+
 export const deadlineOverrideSchema = z.object({
   weekId: z.string().uuid(),
   deadlineDate: z.iso.date(),
