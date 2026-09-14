@@ -192,6 +192,8 @@ The remaining live authorization boundary is separate Google OAuth test identiti
 
 ## Semester-management follow-up — 2026-09-14
 
+- Live release verified: commit `65fe55e` pushed; Vercel deployment `7qfQyTc3RLirYfFQZLcPpUWrGUCq` is Ready and assigned to `sigma-nu-scholarship.vercel.app`. Authenticated Chair Settings loaded the existing semester list and the new Manage semester form with rename/archive/delete actions and unchecked required confirmation. No live semester mutation was submitted during browser verification. This post-deployment evidence is recorded locally after the release commit.
+
 - Added Chair-only Settings controls to rename, archive/deactivate, restore inactive, and permanently delete unused semesters after explicit confirmation. Archived semesters are hidden by default and remain available through Show archived semesters.
 - Migration `202609140019` adds archive state, prevents archived activation, revokes direct authenticated semester update/delete privileges, and exposes an audited chapter-scoped Chair-only management RPC. Existing creation/activation RPCs retain their established behavior. Deletion removes generated weeks only inside one transaction; RESTRICT dependencies block deletion when academic records exist and roll back week removal.
 - Calendar dates/timezone are deliberately not rewritten beneath existing weeks/history. Correct an unused mistaken calendar by deleting and recreating it; semesters with records can be renamed or archived, not purged.
@@ -234,3 +236,8 @@ The remaining live authorization boundary is separate Google OAuth test identiti
 - Reopened Study Hours in a fresh browser tab and reloaded member details from Supabase to verify persistence. The audit UI contains the grade revision, freeze, frozen-assignment decision, override and removal, Proctor edit/add, custom grading review, alert acknowledgment, batch approvals, and message sends.
 - Hosted migration history is current through `202609080013`. The repository verifier is `supabase/fixtures/verify_connected_workflow.sql`; the local connected-workflow pgTAP suite adds 38 checks to the existing authorization coverage.
 - The only intentionally deferred item is the complete separate-browser Google OAuth role matrix, as documented above. The database/RLS suite still covers those authorization boundaries with synthetic identities.
+
+## Browser-tab branding — 2026-09-14
+
+- Added a static `src/app/icon.svg` using the existing gold/navy Sigma Nu monogram. Next.js automatically exposes it as the browser-tab icon across routes; no authentication, authorization, data, or page-layout behavior changed.
+- Verification: 140 unit tests passed; lint, strict TypeScript, formatting verification, and production build passed. The build includes the static `/icon.svg` route.

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Sigma Nu</title>
+  <rect width="64" height="64" rx="14" fill="#d7a72f" />
+  <path
+    fill="#11294b"
+    d="M9 15h22v6H18l10 11-10 11h13v6H9v-6l11-11L9 21zm27 0h6l13 23V15h6v34h-6L42 26v23h-6z"
+  />
+</svg>
