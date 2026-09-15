@@ -61,6 +61,12 @@ export const updateCourseSchema = baseCourseSchema
   .extend({ courseId: z.string().uuid() })
   .superRefine(validateCourse);
 
+export const removeArchivedCourseSchema = z.object({
+  courseId: z.string().uuid(),
+  memberId: z.string().uuid(),
+  confirmed: z.literal("yes"),
+});
+
 export function courseScaleArguments(
   course: z.infer<typeof courseSchema> | z.infer<typeof updateCourseSchema>,
 ) {

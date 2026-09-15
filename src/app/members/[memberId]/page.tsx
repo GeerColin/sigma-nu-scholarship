@@ -9,6 +9,7 @@ import {
   acknowledgeAcademicAlert,
   reviewCustomGrading,
 } from "@/features/academics/actions";
+import { removeArchivedCourse } from "@/features/courses/actions";
 import { getMemberDetail } from "@/features/members/queries";
 import { submissionStatusLabel } from "@/lib/domain/submissions";
 
@@ -111,9 +112,11 @@ export default async function MemberProfilePage({
           role="status"
           className="mb-5 rounded-xl bg-[var(--success-soft)] p-4 font-semibold text-[var(--success)]"
         >
-          {query.status === "custom-reviewed"
-            ? "The Custom/Other grading decision was saved and audited."
-            : "The academic alert was acknowledged and audited."}
+          {query.status === "course-removed"
+            ? "The archived course was permanently removed from this member’s schedule."
+            : query.status === "custom-reviewed"
+              ? "The Custom/Other grading decision was saved and audited."
+              : "The academic alert was acknowledged and audited."}
         </p>
       )}
       {query.error && (
@@ -121,7 +124,13 @@ export default async function MemberProfilePage({
           role="alert"
           className="mb-5 rounded-xl bg-[var(--danger-soft)] p-4 font-semibold text-[var(--danger)]"
         >
-          We couldn’t save that academic review. Nothing was changed.
+          {query.error === "course-has-history"
+            ? "This course has academic history and cannot be permanently removed. It will remain archived."
+            : query.error === "invalid-course-removal"
+              ? "Confirm the permanent course removal before continuing."
+              : query.error === "course-removal-failed"
+                ? "We couldn’t remove that course. Nothing was changed."
+                : "We couldn’t save that academic review. Nothing was changed."}
         </p>
       )}
 
@@ -208,7 +217,7 @@ export default async function MemberProfilePage({
       <Card id="courses" className="mt-5 scroll-mt-4">
         <CardHeader>
           <h2 className="text-xl font-bold text-[var(--navy)]">
-            Current courses
+            Semester courses
           </h2>
         </CardHeader>
         <CardContent>
@@ -225,6 +234,44 @@ export default async function MemberProfilePage({
                   {gradingLabels[course.gradingType] ?? course.gradingType}
                   {course.archived ? " · Archived" : ""}
                 </p>
+                {course.archived && (
+                  <details className="mt-3 border-t pt-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-[var(--danger)]">
+                      Permanently remove course
+                    </summary>
+                    <form
+                      action={removeArchivedCourse}
+                      className="mt-3 space-y-3"
+                    >
+                      <input type="hidden" name="courseId" value={course.id} />
+                      <input type="hidden" name="memberId" value={member.id} />
+                      <p className="text-sm text-[var(--muted)]">
+                        This removes an unused archived course from both the
+                        member and Chair views. Courses with grade or review
+                        history cannot be removed.
+                      </p>
+                      <label className="flex items-start gap-2 text-sm font-semibold">
+                        <input
+                          className="mt-1"
+                          type="checkbox"
+                          name="confirmed"
+                          value="yes"
+                          required
+                        />
+                        <span>
+                          I understand this permanently removes the unused
+                          course.
+                        </span>
+                      </label>
+                      <Button
+                        type="submit"
+                        className="bg-[var(--danger)] hover:opacity-90"
+                      >
+                        Remove course permanently
+                      </Button>
+                    </form>
+                  </details>
+                )}
                 {course.gradingType === "custom" && (
                   <div className="mt-3 border-t pt-3">
                     <p className="text-sm text-[var(--muted)]">

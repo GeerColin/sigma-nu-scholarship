@@ -6,9 +6,13 @@ import { z } from "zod";
 import {
   courseScaleArguments,
   courseSchema,
+  removeArchivedCourseSchema,
   updateCourseSchema,
 } from "@/features/courses/validation";
-import { requireApprovedMemberContext } from "@/lib/auth/guards";
+import {
+  requireApprovedMemberContext,
+  requireChairContext,
+} from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
 const coursesPath = "/member/courses";
@@ -81,4 +85,36 @@ export async function archiveCourse(formData: FormData) {
   if (error) redirect((coursesPath + "?error=not-archived") as never);
   revalidatePath(coursesPath);
   redirect((coursesPath + "?status=archived") as never);
+}
+
+export async function removeArchivedCourse(formData: FormData) {
+  await requireChairContext();
+  const parsed = removeArchivedCourseSchema.safeParse({
+    courseId: formData.get("courseId"),
+    memberId: formData.get("memberId"),
+    confirmed: formData.get("confirmed"),
+  });
+  if (!parsed.success) redirect("/members?error=invalid-course-removal");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("remove_archived_course", {
+    target_course_id: parsed.data.courseId,
+  });
+  if (error)
+    redirect(
+      `/members/${parsed.data.memberId}?error=course-removal-failed#courses`,
+    );
+  if (data === "has_history")
+    redirect(
+      `/members/${parsed.data.memberId}?error=course-has-history#courses`,
+    );
+  if (data !== "deleted")
+    redirect(
+      `/members/${parsed.data.memberId}?error=course-removal-failed#courses`,
+    );
+
+  revalidatePath("/member/courses");
+  revalidatePath("/members");
+  revalidatePath(`/members/${parsed.data.memberId}`);
+  redirect(`/members/${parsed.data.memberId}?status=course-removed#courses`);
 }

@@ -241,3 +241,9 @@ The remaining live authorization boundary is separate Google OAuth test identiti
 
 - Added a static `src/app/icon.svg` using the existing gold/navy Sigma Nu monogram. Next.js automatically exposes it as the browser-tab icon across routes; no authentication, authorization, data, or page-layout behavior changed.
 - Verification: 140 unit tests passed; lint, strict TypeScript, formatting verification, and production build passed. The build includes the static `/icon.svg` route.
+
+## Chair archived-course removal — 2026-09-14
+
+- Added an explicitly confirmed, Chair-only permanent removal control for archived courses on Member Detail. Successful removal clears an unused course from both the member schedule and Chair view and records an append-only audit event.
+- Courses referenced by grade entries, alerts, or Custom/Other grading reviews remain archived and cannot be deleted, preserving historical academic records. Active courses cannot use the removal operation, and direct authenticated course deletion is revoked so callers cannot bypass the audited RPC.
+- Verification: 142 unit tests, 205 local PostgreSQL/RLS checks, and the same 205 rollback-only hosted production checks passed. Lint, strict TypeScript, formatting verification, and the production build also passed. Migration `202609140020` is applied to production; no live course row was changed during verification.
