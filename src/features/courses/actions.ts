@@ -104,11 +104,7 @@ export async function removeArchivedCourse(formData: FormData) {
     redirect(
       `/members/${parsed.data.memberId}?error=course-removal-failed#courses`,
     );
-  if (data === "has_history")
-    redirect(
-      `/members/${parsed.data.memberId}?error=course-has-history#courses`,
-    );
-  if (data !== "deleted")
+  if (data !== "deleted" && data !== "hidden")
     redirect(
       `/members/${parsed.data.memberId}?error=course-removal-failed#courses`,
     );

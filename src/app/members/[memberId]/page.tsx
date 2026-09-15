@@ -113,7 +113,7 @@ export default async function MemberProfilePage({
           className="mb-5 rounded-xl bg-[var(--success-soft)] p-4 font-semibold text-[var(--success)]"
         >
           {query.status === "course-removed"
-            ? "The archived course was permanently removed from this member’s schedule."
+            ? "The archived course was removed from both schedule views. Any required academic history was preserved."
             : query.status === "custom-reviewed"
               ? "The Custom/Other grading decision was saved and audited."
               : "The academic alert was acknowledged and audited."}
@@ -124,13 +124,11 @@ export default async function MemberProfilePage({
           role="alert"
           className="mb-5 rounded-xl bg-[var(--danger-soft)] p-4 font-semibold text-[var(--danger)]"
         >
-          {query.error === "course-has-history"
-            ? "This course has academic history and cannot be permanently removed. It will remain archived."
-            : query.error === "invalid-course-removal"
-              ? "Confirm the permanent course removal before continuing."
-              : query.error === "course-removal-failed"
-                ? "We couldn’t remove that course. Nothing was changed."
-                : "We couldn’t save that academic review. Nothing was changed."}
+          {query.error === "invalid-course-removal"
+            ? "Confirm the permanent course removal before continuing."
+            : query.error === "course-removal-failed"
+              ? "We couldn’t remove that course. Nothing was changed."
+              : "We couldn’t save that academic review. Nothing was changed."}
         </p>
       )}
 
@@ -237,7 +235,7 @@ export default async function MemberProfilePage({
                 {course.archived && (
                   <details className="mt-3 border-t pt-3">
                     <summary className="cursor-pointer text-sm font-semibold text-[var(--danger)]">
-                      Permanently remove course
+                      Remove from schedules
                     </summary>
                     <form
                       action={removeArchivedCourse}
@@ -246,9 +244,9 @@ export default async function MemberProfilePage({
                       <input type="hidden" name="courseId" value={course.id} />
                       <input type="hidden" name="memberId" value={member.id} />
                       <p className="text-sm text-[var(--muted)]">
-                        This removes an unused archived course from both the
-                        member and Chair views. Courses with grade or review
-                        history cannot be removed.
+                        This removes the archived course from both the member
+                        and Chair schedule views. Required grade and review
+                        history remains preserved.
                       </p>
                       <label className="flex items-start gap-2 text-sm font-semibold">
                         <input
@@ -259,15 +257,15 @@ export default async function MemberProfilePage({
                           required
                         />
                         <span>
-                          I understand this permanently removes the unused
-                          course.
+                          I understand this removes the course from both
+                          schedule views.
                         </span>
                       </label>
                       <Button
                         type="submit"
                         className="bg-[var(--danger)] hover:opacity-90"
                       >
-                        Remove course permanently
+                        Remove from schedules
                       </Button>
                     </form>
                   </details>

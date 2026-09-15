@@ -321,6 +321,7 @@ export async function getMemberDetail(memberId: string) {
           )
           .eq("member_id", memberId)
           .eq("semester_id", semesterId)
+          .is("removed_at", null)
           .order("created_at")
       : Promise.resolve({ data: [], error: null }),
     semesterId

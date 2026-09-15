@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(9);
+select plan(11);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role) values
   ('81000000-0000-4000-8000-000000000001', 'course-chair@example.test', '{}', '{"full_name":"Course Chair"}', 'authenticated', 'authenticated'),
@@ -29,8 +29,10 @@ select throws_ok($$select public.remove_archived_course('81000000-0000-4000-8000
 select throws_ok($$delete from public.courses where id = '81000000-0000-4000-8000-000000000030'$$, '42501', null, 'authenticated users cannot bypass the audited removal RPC');
 
 select set_config('request.jwt.claim.sub', '81000000-0000-4000-8000-000000000001', true);
-select is(public.remove_archived_course('81000000-0000-4000-8000-000000000031'), 'has_history', 'Chair cannot remove a course with academic review history');
-select ok(exists(select 1 from public.courses where id = '81000000-0000-4000-8000-000000000031'), 'historical course remains archived');
+select is(public.remove_archived_course('81000000-0000-4000-8000-000000000031'), 'hidden', 'Chair can remove a historical course from schedule views');
+select ok(exists(select 1 from public.courses where id = '81000000-0000-4000-8000-000000000031' and removed_at is not null), 'historical course row is preserved and marked removed');
+select is((select count(*) from public.custom_grading_reviews where course_id = '81000000-0000-4000-8000-000000000031'), 1::bigint, 'academic review history is preserved');
+select is((select count(*) from public.audit_log where action = 'archived_course_hidden' and entity_id = '81000000-0000-4000-8000-000000000031'), 1::bigint, 'historical schedule removal is audited');
 select throws_ok($$select public.remove_archived_course('81000000-0000-4000-8000-000000000032')$$, 'Archived course was not found', 'active course cannot be permanently removed');
 select is(public.remove_archived_course('81000000-0000-4000-8000-000000000030'), 'deleted', 'Chair can remove an unused archived course');
 select is((select count(*) from public.courses where id = '81000000-0000-4000-8000-000000000030'), 0::bigint, 'unused course is deleted');
