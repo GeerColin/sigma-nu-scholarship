@@ -44,6 +44,9 @@ export async function ChairAppShell({
       viewer={{
         name: context.memberName!,
         email: context.email,
+        workspace: "chair",
+        canProctor: true,
+        canChair: true,
         role: context.roles.includes("scholarship_chair")
           ? "Scholarship Chair"
           : "Admin",

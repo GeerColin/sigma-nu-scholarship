@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import {
   ProctorSessionLogger,
   type SessionItem,
@@ -96,12 +96,13 @@ export default async function ProctorPage({
             </p>
           </div>
         </div>
-        <Link
-          href="/member"
-          className="font-semibold text-[var(--navy)] hover:underline"
-        >
-          Member home
-        </Link>
+        <WorkspaceSwitcher
+          active="proctor"
+          canProctor
+          canChair={context.roles.some((role) =>
+            ["admin", "scholarship_chair"].includes(role),
+          )}
+        />
       </header>
       {params.status && statusMessages[params.status] && (
         <p

@@ -1,11 +1,19 @@
 import { LogOut, Menu } from "lucide-react";
 import { AdminNavigation } from "@/components/admin-navigation";
 import { BrandMark } from "@/components/brand-mark";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { signOut } from "@/features/auth/actions";
 
 type AppShellProps = {
   children: React.ReactNode;
-  viewer: { name: string; email: string; role: string };
+  viewer: {
+    name: string;
+    email: string;
+    role: string;
+    workspace?: "member" | "proctor" | "chair";
+    canProctor?: boolean;
+    canChair?: boolean;
+  };
   chapter: {
     fraternityName: string;
     chapterName: string;
@@ -60,6 +68,13 @@ export function AppShell({
             </p>
           </div>
         </div>
+        <div className="px-3 pt-4">
+          <WorkspaceSwitcher
+            active={viewer.workspace ?? "chair"}
+            canProctor={viewer.canProctor ?? true}
+            canChair={viewer.canChair ?? true}
+          />
+        </div>
         <nav
           aria-label="Scholarship administration"
           className="flex-1 space-y-1 px-3 py-5"
@@ -101,6 +116,13 @@ export function AppShell({
             <span className="hidden text-sm text-[var(--muted)] sm:inline">
               {periodLabel}
             </span>
+            <div className="lg:hidden">
+              <WorkspaceSwitcher
+                active={viewer.workspace ?? "chair"}
+                canProctor={viewer.canProctor ?? true}
+                canChair={viewer.canChair ?? true}
+              />
+            </div>
             <details className="relative lg:hidden">
               <summary
                 aria-label="Open navigation"

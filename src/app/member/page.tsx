@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Clock3 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
@@ -108,24 +109,15 @@ export default async function MemberHomePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {context.roles.includes("proctor") && (
-            <Link
-              href="/proctor"
-              className="inline-flex min-h-11 items-center rounded-xl border px-4 font-semibold text-[var(--navy)]"
-            >
-              Proctor portal
-            </Link>
-          )}
-          {context.roles.some((role) =>
-            ["admin", "scholarship_chair"].includes(role),
-          ) && (
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center rounded-xl border px-4 font-semibold text-[var(--navy)]"
-            >
-              Chair dashboard
-            </Link>
-          )}
+          <WorkspaceSwitcher
+            active="member"
+            canProctor={context.roles.some((role) =>
+              ["proctor", "admin", "scholarship_chair"].includes(role),
+            )}
+            canChair={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
           <Badge tone={context.status === "active" ? "success" : "neutral"}>
             {context.status ?? "Unknown"}
           </Badge>
