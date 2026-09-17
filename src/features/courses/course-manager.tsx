@@ -164,6 +164,7 @@ export function CourseManager({
 }: {
   initialCourses: CourseListItem[];
 }) {
+  const atCourseLimit = initialCourses.length >= 8;
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
       <Card>
@@ -171,6 +172,9 @@ export function CourseManager({
           <h2 className="text-xl font-bold text-[var(--navy)]">
             Active courses
           </h2>
+          <p className="px-5 pb-4 text-sm text-[var(--muted)]">
+            {initialCourses.length}/8 active courses
+          </p>
         </CardHeader>
         <div className="divide-y">
           {initialCourses.map((course) => (
@@ -249,13 +253,20 @@ export function CourseManager({
           <h2 className="text-xl font-bold text-[var(--navy)]">Add a course</h2>
         </CardHeader>
         <CardContent>
-          <form action={createCourse} className="space-y-4">
-            <CourseFields />
-            <SubmitButton type="submit" className="w-full">
-              <Plus className="mr-2 size-4" />
-              Add course
-            </SubmitButton>
-          </form>
+          {atCourseLimit ? (
+            <p className="text-[var(--muted)]">
+              You have reached the limit of 8 active courses for this semester.
+              Archive a course before adding another.
+            </p>
+          ) : (
+            <form action={createCourse} className="space-y-4">
+              <CourseFields />
+              <SubmitButton type="submit" className="w-full">
+                <Plus className="mr-2 size-4" />
+                Add course
+              </SubmitButton>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

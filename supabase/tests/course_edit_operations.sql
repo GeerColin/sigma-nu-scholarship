@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(7);
+select plan(8);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values ('80000000-0000-4000-8000-000000000001', 'course-member@example.test', '{}', '{"full_name":"Course Member"}', 'authenticated', 'authenticated');
@@ -26,6 +26,17 @@ select lives_ok($$select public.update_member_course((select id from public.cour
 select is((select name || ':' || credit_hours::text from public.courses limit 1), 'Synthetic Calculus II:3.00', 'current course reflects the edit');
 select is((select course_name_snapshot || ':' || credit_hours_snapshot::text from public.grade_entries limit 1), 'Synthetic Calculus:4.00', 'historical grade snapshot remains unchanged');
 
+do $$
+begin
+  for i in 1..7 loop
+    perform public.create_member_course_configured('Synthetic Course ' || i, 1, 'letter');
+  end loop;
+end
+$$;
+select throws_ok(
+  $$select public.create_member_course_configured('Synthetic Course 9', 1, 'letter')$$,
+  'P0001', 'A member may have at most 8 active courses per semester', 'member cannot exceed 8 active courses'
+);
+
 select * from finish();
 rollback;
-

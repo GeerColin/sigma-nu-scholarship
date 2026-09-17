@@ -124,6 +124,24 @@ describe("synthetic usability interactions", () => {
     expect(screen.getByText(/Existing history stays available/)).toBeTruthy();
   });
 
+  it("shows the eight-course semester limit", () => {
+    render(
+      createElement(CourseManager, {
+        initialCourses: Array.from({ length: 8 }, (_, index) => ({
+          id: `synthetic-course-${index}`,
+          name: `Synthetic Course ${index + 1}`,
+          creditHours: 3,
+          gradingType: "letter" as const,
+        })),
+      }),
+    );
+    expect(screen.getByText("8/8 active courses")).toBeTruthy();
+    expect(
+      screen.getByText(/reached the limit of 8 active courses/i),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add course" })).toBeNull();
+  });
+
   it("lets a Proctor enter hours and minutes while keeping academic data absent", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-12T12:00:00Z"));

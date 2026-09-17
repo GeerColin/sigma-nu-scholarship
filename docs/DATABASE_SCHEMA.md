@@ -16,7 +16,7 @@ All tenant-owned rows carry `chapter_id` directly or inherit it through a constr
 - `semesters`: dates, timezone, default weekly deadline, GPA weighting mode.
 - `academic_weeks`: generated labels/date ranges and effective deadline overrides.
 - `grading_scales`: immutable/versioned percentage-to-letter/GPA configuration snapshots.
-- `courses`: member/semester course, credits, one of four grading types, grading metadata, archived timestamp.
+- `courses`: member/semester course, credits, one of four grading types, grading metadata, archived timestamp; at most 8 active courses per member/semester.
 - `custom_grading_reviews`: auditable administrative GPA treatment.
 
 ## Weekly records

@@ -7,6 +7,6 @@ User-facing grading types are exactly Percentage, Letter Grade, Pass / Fail, and
 - Pass / Fail records the reported result and is excluded from estimated GPA by default.
 - Custom / Other stores the grading description and standing. It is excluded until Chair/Admin review selects Exclude, Treat as Pass/Fail, or a reliable custom conversion.
 
-The default calculation is credit-hour weighted: sum of `grade points * credit hours` divided by included credit hours. Equal-course weighting is an administrative alternative. Archived courses do not enter new submissions. Missing or uninterpretable grades do not contribute. The UI always says `Estimated [Semester Name] GPA`, states the number of included active courses, and shows the official-GPA disclaimer.
+The default calculation is credit-hour weighted: sum of `grade points * credit hours` divided by included credit hours. Equal-course weighting is an administrative alternative. Members may have up to 8 active courses per semester; archived courses do not enter new submissions. Missing or uninterpretable grades do not contribute. The UI always says `Estimated [Semester Name] GPA`, states the number of included active courses, and shows the official-GPA disclaimer.
 
 Each submission revision snapshots course name, credits, grading type, scale/conversion, inclusion, calculated points, and any optional member context comment (maximum 30 words). Later course or default-scale changes cannot alter history.

@@ -16,7 +16,7 @@ const entriesSchema = z
     }),
   )
   .min(1)
-  .max(30);
+  .max(8);
 
 const submissionCommentSchema = z
   .string()
