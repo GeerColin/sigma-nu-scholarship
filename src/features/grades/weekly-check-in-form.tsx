@@ -17,10 +17,12 @@ export function WeeklyCheckInForm({
   weekId,
   courses,
   isRevision = false,
+  initialComment = null,
 }: {
   weekId: string;
   courses: CheckInCourse[];
   isRevision?: boolean;
+  initialComment?: string | null;
 }) {
   const initial = useMemo(
     () =>
@@ -31,6 +33,7 @@ export function WeeklyCheckInForm({
   );
   const [values, setValues] =
     useState<Record<string, string | number>>(initial);
+  const [comment, setComment] = useState(initialComment ?? "");
   const entries = courses.map((course) => ({
     courseId: course.id,
     value:
@@ -134,12 +137,42 @@ export function WeeklyCheckInForm({
         </Card>
       ))}
       {courses.length > 0 && (
-        <SubmitButton
-          pendingLabel="Submitting grades…"
-          className="w-full sm:w-auto"
-        >
-          {isRevision ? "Save revised grades" : "Submit weekly grades"}
-        </SubmitButton>
+        <>
+          <Card>
+            <CardContent>
+              <label htmlFor="submission-comment">
+                <span className="block font-bold text-[var(--navy)]">
+                  Anything you want to explain about these grades?
+                </span>
+                <span className="mt-1 block text-sm text-[var(--muted)]">
+                  Optional context, such as an exam, illness, or grading
+                  circumstance. This note is saved with this submission. 30
+                  words maximum.
+                </span>
+                <textarea
+                  id="submission-comment"
+                  name="submissionComment"
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  maxLength={1000}
+                  rows={4}
+                  className="mt-3 w-full rounded-xl border px-3 py-3"
+                  placeholder="Add a note about this week’s grades (optional)"
+                />
+                <span className="mt-1 block text-right text-xs text-[var(--muted)]">
+                  {comment.trim() ? comment.trim().split(/\s+/).length : 0}/30
+                  words
+                </span>
+              </label>
+            </CardContent>
+          </Card>
+          <SubmitButton
+            pendingLabel="Submitting grades…"
+            className="w-full sm:w-auto"
+          >
+            {isRevision ? "Save revised grades" : "Submit weekly grades"}
+          </SubmitButton>
+        </>
       )}
     </form>
   );

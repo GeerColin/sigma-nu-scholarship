@@ -404,6 +404,14 @@ export default async function MemberProfilePage({
                     </p>
                   ))}
                 </div>
+                {submission.submissionComment && (
+                  <p className="mt-4 rounded-xl bg-[var(--surface-subtle)] p-3 text-sm text-[var(--muted)]">
+                    <span className="font-semibold text-[var(--navy)]">
+                      Member note:
+                    </span>{" "}
+                    {submission.submissionComment}
+                  </p>
+                )}
               </article>
             ))}
             {!member.submissions.length && (

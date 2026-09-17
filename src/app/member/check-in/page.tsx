@@ -37,6 +37,7 @@ export default async function CheckInPage({
     estimated_gpa_snapshot: number | string | null;
     included_course_count: number;
     active_course_count: number;
+    submission_comment: string | null;
   } | null = null;
 
   if (period?.currentWeek) {
@@ -64,7 +65,7 @@ export default async function CheckInPage({
       supabase
         .from("grade_submissions")
         .select(
-          "original_timing, revision_timing, revision_number, original_submitted_at, estimated_gpa_snapshot, included_course_count, active_course_count, grade_entries(course_id, reported_value)",
+          "original_timing, revision_timing, revision_number, original_submitted_at, estimated_gpa_snapshot, included_course_count, active_course_count, submission_comment, grade_entries(course_id, reported_value)",
         )
         .eq("member_id", context.memberId!)
         .eq("week_id", period.currentWeek.id)
@@ -93,6 +94,7 @@ export default async function CheckInPage({
           estimated_gpa_snapshot: current.estimated_gpa_snapshot,
           included_course_count: current.included_course_count,
           active_course_count: current.active_course_count,
+          submission_comment: current.submission_comment,
         }
       : null;
     const sourceEntries = (current?.grade_entries ??
@@ -240,6 +242,7 @@ export default async function CheckInPage({
               weekId={period.currentWeek.id}
               courses={courses}
               isRevision={Boolean(currentSubmission)}
+              initialComment={currentSubmission?.submission_comment ?? null}
             />
           ) : (
             <Card>

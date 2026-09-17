@@ -21,7 +21,7 @@ All tenant-owned rows carry `chapter_id` directly or inherit it through a constr
 
 ## Weekly records
 
-- `grade_submissions`: one immutable revision for a member/week, revision number, original/effective timing facts, deadline snapshot, current marker, and GPA snapshot.
+- `grade_submissions`: one immutable revision for a member/week, revision number, original/effective timing facts, deadline snapshot, current marker, GPA snapshot, and an optional member context comment (maximum 30 words).
 - `grade_entries`: immutable course-level snapshots including name, credits, grading type, submitted value, inclusion, and GPA points.
 - `academic_alerts`: configurable grade-change detection result and review state.
 

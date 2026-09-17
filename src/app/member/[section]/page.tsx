@@ -23,7 +23,7 @@ export default async function MemberSectionPage({
     ? await supabase
         .from("grade_submissions")
         .select(
-          "id, week_id, revision_number, original_submitted_at, original_timing, revision_timing, estimated_gpa_snapshot, included_course_count, active_course_count, academic_weeks(label, sequence_number)",
+          "id, week_id, revision_number, original_submitted_at, original_timing, revision_timing, estimated_gpa_snapshot, included_course_count, active_course_count, submission_comment, academic_weeks(label, sequence_number)",
         )
         .eq("member_id", context.memberId!)
         .eq("is_current", true)
@@ -200,6 +200,14 @@ export default async function MemberSectionPage({
                         )}{" "}
                         · Revision {submission.revision_number}
                       </p>
+                      {submission.submission_comment && (
+                        <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
+                          <span className="font-semibold text-[var(--navy)]">
+                            Your note:
+                          </span>{" "}
+                          {submission.submission_comment}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <Badge

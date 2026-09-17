@@ -249,6 +249,7 @@ export type MemberDetail = {
     estimatedGpa: number | null;
     includedCourseCount: number;
     activeCourseCount: number;
+    submissionComment: string | null;
     entries: Array<{
       courseId: string;
       courseName: string;
@@ -328,7 +329,7 @@ export async function getMemberDetail(memberId: string) {
       ? supabase
           .from("grade_submissions")
           .select(
-            "id, week_id, revision_number, submitted_at, original_submitted_at, original_timing, revision_timing, is_current, estimated_gpa_snapshot, included_course_count, active_course_count, academic_weeks(label, sequence_number), grade_entries(course_id, course_name_snapshot, reported_value)",
+            "id, week_id, revision_number, submitted_at, original_submitted_at, original_timing, revision_timing, is_current, estimated_gpa_snapshot, included_course_count, active_course_count, submission_comment, academic_weeks(label, sequence_number), grade_entries(course_id, course_name_snapshot, reported_value)",
           )
           .eq("member_id", memberId)
           .order("submitted_at", { ascending: false })
@@ -404,6 +405,7 @@ export async function getMemberDetail(memberId: string) {
           : Number(submission.estimated_gpa_snapshot),
       includedCourseCount: submission.included_course_count,
       activeCourseCount: submission.active_course_count,
+      submissionComment: submission.submission_comment,
       entries: (
         submission.grade_entries as Array<{
           course_id: string;

@@ -18,6 +18,16 @@ const entriesSchema = z
   .min(1)
   .max(30);
 
+const submissionCommentSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine(
+    (value) => value.length === 0 || value.split(/\s+/).length <= 30,
+    "Submission comments must be 30 words or fewer",
+  )
+  .optional();
+
 export async function submitWeeklyCheckIn(formData: FormData) {
   await requireApprovedMemberContext();
   const weekId = z.string().uuid().safeParse(formData.get("weekId"));
@@ -28,12 +38,16 @@ export async function submitWeeklyCheckIn(formData: FormData) {
     redirect("/member/check-in?error=invalid-grades");
   }
   const entries = entriesSchema.safeParse(rawEntries);
-  if (!weekId.success || !entries.success)
+  const submissionComment = submissionCommentSchema.safeParse(
+    formData.get("submissionComment") ?? undefined,
+  );
+  if (!weekId.success || !entries.success || !submissionComment.success)
     redirect("/member/check-in?error=invalid-grades");
   const supabase = await createClient();
   const { error } = await supabase.rpc("submit_weekly_checkin", {
     target_week_id: weekId.data,
     submitted_entries: entries.data,
+    submission_comment: submissionComment.data || null,
   });
   if (error) redirect("/member/check-in?error=not-recorded");
   redirect("/member/check-in?status=submitted");

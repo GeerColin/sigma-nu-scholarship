@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(13);
+select plan(15);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values ('20000000-0000-4000-8000-000000000001', 'academic-member@example.test', '{}', '{"full_name":"Academic Member"}', 'authenticated', 'authenticated');
@@ -41,11 +41,16 @@ select lives_ok(
 select is((select count(*)::integer from public.courses where name = 'Custom Lab' and archived_at is not null), 1, 'archived course is retained');
 
 select lives_ok(
-  $$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[{"courseId":"20000000-0000-4000-8000-000000000031","value":95},{"courseId":"20000000-0000-4000-8000-000000000032","value":"B"},{"courseId":"20000000-0000-4000-8000-000000000033","value":"Pass"}]')$$,
+  $$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[{"courseId":"20000000-0000-4000-8000-000000000031","value":95},{"courseId":"20000000-0000-4000-8000-000000000032","value":"B"},{"courseId":"20000000-0000-4000-8000-000000000033","value":"Pass"}]', 'Synthetic exam week context')$$,
   'member can create the first immutable weekly submission'
 );
 select is((select estimated_gpa_snapshot from public.grade_submissions where revision_number = 1), 3.75::numeric, 'server calculates credit-weighted GPA and excludes Pass/Fail');
 select is((select original_timing::text from public.grade_submissions where revision_number = 1), 'on_time', 'server snapshots original on-time status');
+select is((select submission_comment from public.grade_submissions where revision_number = 1), 'Synthetic exam week context', 'submission comment is retained with the revision');
+select throws_ok(
+  $$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[]', repeat('word ', 31))$$,
+  'P0001', 'Submission comment must be 30 words or fewer', 'submission comments reject more than 30 words'
+);
 
 select lives_ok(
   $$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[{"courseId":"20000000-0000-4000-8000-000000000031","value":80},{"courseId":"20000000-0000-4000-8000-000000000032","value":"C"},{"courseId":"20000000-0000-4000-8000-000000000033","value":"Pass"}]')$$,

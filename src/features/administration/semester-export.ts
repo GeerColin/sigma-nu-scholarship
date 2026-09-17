@@ -98,6 +98,7 @@ export const EXPORT_COLUMNS = {
     "estimated_gpa_snapshot",
     "included_course_count",
     "active_course_count",
+    "submission_comment",
     "created_at",
   ],
   grade_entries: [

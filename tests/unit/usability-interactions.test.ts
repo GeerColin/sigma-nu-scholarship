@@ -46,6 +46,7 @@ describe("synthetic usability interactions", () => {
       createElement(WeeklyCheckInForm, {
         weekId: "synthetic-week",
         isRevision: true,
+        initialComment: "Synthetic exam context",
         courses: [
           {
             id: "synthetic-course",
@@ -61,6 +62,13 @@ describe("synthetic usability interactions", () => {
     expect(input.value).toBe("85");
     expect(input.inputMode).toBe("decimal");
     fireEvent.change(input, { target: { value: "90" } });
+    expect(
+      (
+        screen.getByLabelText(
+          /Anything you want to explain about these grades/i,
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe("Synthetic exam context");
     const entries = container.querySelector<HTMLInputElement>(
       'input[name="entries"]',
     );
