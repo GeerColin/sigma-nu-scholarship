@@ -8,6 +8,7 @@ import { AccessManagement } from "@/features/administration/access-management";
 import { HandoffWizard } from "@/features/administration/handoff-wizard";
 import { RosterImportForm } from "@/features/administration/roster-import-form";
 import { RoleManagement } from "@/features/administration/role-management";
+import { ScheduleManager } from "@/features/schedule/schedule-manager";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,6 +36,10 @@ const sections = {
   handoff: [
     "Scholarship Chair handoff",
     "Select an activated successor, run readiness checks, review outgoing access, and complete one atomic transfer.",
+  ],
+  schedule: [
+    "Recurring study schedule",
+    "Manage weekly proctor sessions, dated exceptions, and assignments for the active semester.",
   ],
 } as const;
 export default async function AdministrationSectionPage({
@@ -141,6 +146,8 @@ export default async function AdministrationSectionPage({
         </div>
       ) : section === "access" ? (
         <AccessManagement status={query.status} error={query.error} />
+      ) : section === "schedule" ? (
+        <ScheduleManager status={query.status} error={query.error} />
       ) : section === "audit" ? (
         <Card>
           <div className="divide-y">

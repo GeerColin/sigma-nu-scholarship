@@ -4,6 +4,8 @@ import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SchedulePreviewCard } from "@/features/schedule/schedule-preview-card";
+import { getScheduleEntries } from "@/features/schedule/queries";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireApprovedMemberContext } from "@/lib/auth/guards";
 import { submissionStatusLabel } from "@/lib/domain/submissions";
@@ -22,6 +24,13 @@ function hours(minutes: number) {
 export default async function MemberHomePage() {
   const context = await requireApprovedMemberContext();
   const period = await getActiveAcademicPeriod(context.chapterId!);
+  const scheduleEntries = period
+    ? await getScheduleEntries(
+        period.semester.id,
+        period.semester.startDate,
+        period.semester.endDate,
+      )
+    : [];
   const supabase = await createClient();
   let submission: {
     original_timing: "on_time" | "late";
@@ -288,6 +297,10 @@ export default async function MemberHomePage() {
         </div>
       )}
 
+      <div className="mt-7">
+        <SchedulePreviewCard entries={scheduleEntries} />
+      </div>
+
       <nav
         aria-label="Member navigation"
         className="mt-7 grid gap-3 sm:grid-cols-4"
@@ -298,11 +311,12 @@ export default async function MemberHomePage() {
             ["My Courses", "/member/courses"],
             ["My Study Hours", "/member/study-hours"],
             ["My History / Trends", "/member/history"],
+            ["Study Schedule", "/schedule"],
           ] as const
         ).map(([label, href]) => (
           <Link
             key={href}
-            href={href}
+            href={href as never}
             className="min-h-12 rounded-xl border bg-white px-4 py-3 text-center font-semibold text-[var(--navy)] hover:bg-[var(--surface-subtle)]"
           >
             {label}

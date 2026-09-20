@@ -10,6 +10,12 @@ import Link from "next/link";
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ScheduleNotificationPanel } from "@/features/schedule/notification-panel";
+import { SchedulePreviewCard } from "@/features/schedule/schedule-preview-card";
+import {
+  getScheduleEntries,
+  getScheduleNotifications,
+} from "@/features/schedule/queries";
 import { getMemberDirectory } from "@/features/members/queries";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
@@ -163,6 +169,16 @@ export default async function DashboardPage() {
     icon: typeof BookOpenCheck;
     tone: string;
   }>;
+  const [scheduleEntries, scheduleNotifications] = period
+    ? await Promise.all([
+        getScheduleEntries(
+          period.semester.id,
+          period.semester.startDate,
+          period.semester.endDate,
+        ),
+        getScheduleNotifications(context.chapterId!),
+      ])
+    : [[], []];
 
   return (
     <ChairAppShell>
@@ -363,6 +379,10 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
+      <div className="mt-6 grid gap-5 xl:grid-cols-2">
+        <SchedulePreviewCard entries={scheduleEntries} />
+        <ScheduleNotificationPanel notifications={scheduleNotifications} />
+      </div>
     </ChairAppShell>
   );
 }

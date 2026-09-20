@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BookOpenCheck,
+  CalendarDays,
   CircleHelp,
   Clock3,
   House,
@@ -18,6 +19,7 @@ const items = [
   { label: "Dashboard", href: "/", icon: House },
   { label: "Members", href: "/members", icon: Users },
   { label: "This Week", href: "/this-week", icon: BookOpenCheck },
+  { label: "Schedule", href: "/schedule", icon: CalendarDays },
   { label: "Study Hours", href: "/study-hours", icon: Clock3 },
   { label: "Email", href: "/email", icon: Mail },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -43,7 +45,7 @@ export function AdminNavigation({
     return (
       <Link
         key={href}
-        href={href}
+        href={href as never}
         aria-current={active ? "page" : undefined}
         className={
           variant === "desktop"

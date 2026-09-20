@@ -1,5 +1,7 @@
 import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { SchedulePreviewCard } from "@/features/schedule/schedule-preview-card";
+import { getScheduleEntries } from "@/features/schedule/queries";
 import {
   ProctorSessionLogger,
   type SessionItem,
@@ -24,6 +26,13 @@ export default async function ProctorPage({
   const context = await requireProctorContext();
   const supabase = await createClient();
   const period = await getActiveAcademicPeriod(context.chapterId!);
+  const scheduleEntries = period
+    ? await getScheduleEntries(
+        period.semester.id,
+        period.semester.startDate,
+        period.semester.endDate,
+      )
+    : [];
   const canCorrectAll = context.roles.some((role) =>
     ["admin", "scholarship_chair"].includes(role),
   );
@@ -141,6 +150,17 @@ export default async function ProctorPage({
         initialSessions={sessions}
         canCorrectAll={canCorrectAll}
       />
+      <div className="mt-7 grid gap-5 lg:grid-cols-2">
+        <SchedulePreviewCard
+          entries={scheduleEntries}
+          title="Chapter schedule"
+        />
+        <SchedulePreviewCard
+          entries={scheduleEntries}
+          memberId={context.memberId ?? undefined}
+          title="Your next shift"
+        />
+      </div>
     </main>
   );
 }

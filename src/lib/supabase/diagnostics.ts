@@ -30,6 +30,8 @@ export type DiagnosticOperation =
   | "week"
   | "courses"
   | "custom_reviews"
+  | "schedule"
+  | "notifications"
   | "other_read"
   | "render";
 

@@ -25,14 +25,16 @@ Members may hold multiple roles. Member statuses are exactly Active, Inactive, a
 6. Versioned study-hour rules create weekly assignments; Chair/Admin may reasoned-override them.
 7. Sending assignment email freezes the assignment. Later grade changes create a review decision.
 8. Proctors record integer-minute sessions and may edit their own entries only during the current week.
-9. Chair/Admin prepares, edits, previews, and explicitly sends email batches.
-10. Chair reviews actionable exceptions, analytics, exports, audit history, and completes atomic successor handoff.
+9. Chair/Admin creates a recurring weekly proctor schedule, assigns one or more proctors, and manages dated overrides or cancellations without rewriting history.
+10. Members browse the read-only schedule; assigned Proctors may change only the time/location of their own future dated occurrence, while Chairs receive persistent in-app notifications.
+11. Chair/Admin prepares, edits, previews, and explicitly sends email batches.
+12. Chair reviews actionable exceptions, analytics, exports, audit history, and completes atomic successor handoff.
 
 ## UX requirements
 
 Member navigation: Home, Weekly Check-In, My Courses, My Study Hours, My History / Trends. Chair navigation: Dashboard, Members, This Week, Study Hours, Email, Analytics, Settings, Administration. Interfaces are responsive and keyboard accessible. Status is never communicated by color alone. Normal-user errors state what failed, whether data was saved, and what to do next.
 
-The member dashboard prominently shows semester/week, submission state, `Estimated [Semester] GPA` with disclaimer and included-course count, required/completed/remaining study hours, and the next deadline. The Chair dashboard prioritizes missing/late submissions, alerts, grading reviews, incomplete hours, and email requiring approval.
+The member dashboard prominently shows semester/week, submission state, `Estimated [Semester] GPA` with disclaimer and included-course count, required/completed/remaining study hours, the next deadline, and the next scheduled study session. The Chair dashboard prioritizes missing/late submissions, alerts, grading reviews, incomplete hours, schedule changes, and email requiring approval. The schedule uses the active semester timezone and clearly identifies concurrent sessions, cancellations, and dated changes.
 
 ## V1 exclusions
 

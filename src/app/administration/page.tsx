@@ -90,6 +90,12 @@ export default async function AdministrationPage() {
       href: "/administration/handoff",
       ready: true,
     },
+    {
+      title: "Recurring study schedule",
+      detail: "Plan proctor sessions and dated changes",
+      href: "/administration/schedule",
+      ready: true,
+    },
   ] as const;
 
   return (
