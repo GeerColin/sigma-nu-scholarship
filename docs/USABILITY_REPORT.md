@@ -83,7 +83,7 @@ No real roster/academic data was imported into Supabase by the agent in this pha
 
 ## 14. UI functionality and visual-polish follow-up — 2026-09-20
 
-This follow-up used the current deployed Chair session for read-only route checks and the local development project for the accessibility patch. The patch is committed locally as `006782b` but has not been pushed or deployed. No form was submitted, no production setting was changed, and no roster or academic record was mutated.
+This follow-up used the current deployed Chair session for read-only route checks and the local development project for the accessibility patch. The patch is committed as `006782b`, included in pushed commit `f5ceb7d`, and is deployed in Vercel production deployment `8NpQmhsLniXqngnQKg99px3kpmc1`, which is Ready. No form was submitted, no production setting was changed, and no roster or academic record was mutated.
 
 ### Browser checklist
 
