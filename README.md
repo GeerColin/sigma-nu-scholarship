@@ -15,6 +15,8 @@ The database is the source of truth. Google Sheets is not required at runtime.
 
 For local Supabase setup, deployment, OAuth, email, and one-time bootstrap configuration, see [Deployment](docs/DEPLOYMENT.md) and [Handoff](docs/HANDOFF.md).
 
+For the controlled production pilot, accepted availability risk, launch checks, monitoring, and recovery boundaries, see [Pilot launch](docs/PILOT_LAUNCH.md).
+
 ## Repository map
 
 - `src/app`: routes, layouts, route handlers, and server actions
