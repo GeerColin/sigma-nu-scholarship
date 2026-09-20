@@ -58,7 +58,7 @@ export default async function SettingsPage({
   const { data: semesters, error } = await supabase
     .from("semesters")
     .select(
-      "id, name, start_date, end_date, timezone, default_deadline_weekday, default_deadline_time, first_grade_check_week_id, active, archived_at, academic_weeks(id, sequence_number, label, starts_on, ends_on, deadline_at, deadline_overridden, grade_check_required)",
+      "id, name, start_date, end_date, timezone, default_deadline_weekday, default_deadline_time, first_grade_check_week_id, active, archived_at, academic_weeks!academic_weeks_semester_id_fkey(id, sequence_number, label, starts_on, ends_on, deadline_at, deadline_overridden, grade_check_required)",
     )
     .eq("chapter_id", context.chapterId!)
     .order("start_date", { ascending: false });
