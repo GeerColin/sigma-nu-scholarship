@@ -224,7 +224,10 @@ export async function getScheduleNotifications(
   const { data, error } = await supabase
     .from("study_schedule_notifications")
     .select(
-      "id, occurrence_id, before_state, after_state, created_at, read_at, profiles(display_name, email)",
+      // Notifications reference profiles twice (actor_profile_id and read_by).
+      // The explicit FK hint avoids PostgREST's PGRST201 ambiguous
+      // relationship error when resolving the actor profile.
+      "id, occurrence_id, before_state, after_state, created_at, read_at, profiles!study_schedule_notifications_actor_profile_id_fkey(display_name, email)",
     )
     .eq("chapter_id", chapterId)
     .order("created_at", { ascending: false })
