@@ -22,7 +22,9 @@ function formatHours(minutes: number) {
 const submissionLabels = {
   on_time: "On Time",
   late: "Late",
+  awaiting: "Awaiting submission",
   missing: "Missing",
+  not_required: "No grade check",
   not_configured: "No current week",
 } as const;
 
@@ -33,7 +35,9 @@ function submissionTone(status: MemberDirectoryItem["submissionStatus"]) {
       ? "warning"
       : status === "missing"
         ? "danger"
-        : "neutral";
+        : status === "awaiting"
+          ? "neutral"
+          : "neutral";
 }
 
 export default async function MembersPage({

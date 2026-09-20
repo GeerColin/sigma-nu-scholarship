@@ -90,7 +90,7 @@ export default async function MemberHomePage() {
   const deadline = period?.currentWeek
     ? new Date(period.currentWeek.deadlineAt)
     : null;
-  const checkInState = period?.currentWeek
+  const checkInState = period?.currentWeek?.gradeCheckRequired
     ? memberCheckInState({
         submitted: Boolean(submission),
         deadlineAt: period.currentWeek.deadlineAt,
@@ -161,57 +161,78 @@ export default async function MemberHomePage() {
             }
           >
             <CardContent>
-              <p className="text-sm font-semibold text-white/70">
-                Weekly grade check-in
-              </p>
-              <p className="mt-1 text-sm text-white/65">
-                Deadline:{" "}
-                {new Intl.DateTimeFormat(undefined, {
-                  timeZone: period.semester.timezone,
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(deadline!)}{" "}
-                · {period.semester.timezone}
-              </p>
-              <div className="mt-3 flex items-center gap-2 text-2xl font-bold">
-                {submission ? (
-                  <CheckCircle2 className="size-6 text-[var(--gold)]" />
-                ) : (
-                  <Clock3 className="size-6 text-[var(--gold)]" />
-                )}
-                {submission
-                  ? submission.original_timing === "late"
-                    ? "Weekly check-in submitted late"
-                    : "Weekly check-in complete"
-                  : checkInOverdue
-                    ? "Your check-in is overdue"
-                    : "Your check-in is due"}
-              </div>
-              <p className="mt-2 text-sm text-white/65">
-                {submission
-                  ? new Intl.DateTimeFormat(undefined, {
+              {!period.currentWeek.gradeCheckRequired ? (
+                <>
+                  <p className="text-sm font-semibold text-white/70">
+                    Weekly grade check-in
+                  </p>
+                  <p className="mt-3 text-2xl font-bold">
+                    No grade check required this week
+                  </p>
+                  <p className="mt-2 text-sm text-white/65">
+                    {period.currentWeek.sequenceNumber <
+                    (period.semester.firstGradeCheckSequence ?? 1)
+                      ? `Grade checks begin Week ${period.semester.firstGradeCheckSequence}.`
+                      : "No grade check is required for this scheduled week."}{" "}
+                    Study-hour tracking and scheduled proctor sessions remain
+                    available.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-white/70">
+                    Weekly grade check-in
+                  </p>
+                  <p className="mt-1 text-sm text-white/65">
+                    Deadline:{" "}
+                    {new Intl.DateTimeFormat(undefined, {
+                      timeZone: period.semester.timezone,
                       dateStyle: "medium",
                       timeStyle: "short",
-                    }).format(new Date(submission.original_submitted_at)) +
-                    " · " +
-                    submissionStatusLabel(
-                      submission.original_timing,
-                      submission.revision_timing,
-                      submission.revision_number,
-                    )
-                  : checkInOverdue
-                    ? "Submit now. It will be recorded as late."
-                    : "Report your current standing before the deadline."}
-              </p>
-              <Link
-                href="/member/check-in"
-                className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-white px-5 font-bold text-[var(--navy)] sm:w-auto"
-              >
-                {submission
-                  ? "Review or revise grades"
-                  : "Submit weekly grades"}
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
+                    }).format(deadline!)}{" "}
+                    · {period.semester.timezone}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-2xl font-bold">
+                    {submission ? (
+                      <CheckCircle2 className="size-6 text-[var(--gold)]" />
+                    ) : (
+                      <Clock3 className="size-6 text-[var(--gold)]" />
+                    )}
+                    {submission
+                      ? submission.original_timing === "late"
+                        ? "Weekly check-in submitted late"
+                        : "Weekly check-in complete"
+                      : checkInOverdue
+                        ? "Your check-in is overdue"
+                        : "Your check-in is due"}
+                  </div>
+                  <p className="mt-2 text-sm text-white/65">
+                    {submission
+                      ? new Intl.DateTimeFormat(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }).format(new Date(submission.original_submitted_at)) +
+                        " · " +
+                        submissionStatusLabel(
+                          submission.original_timing,
+                          submission.revision_timing,
+                          submission.revision_number,
+                        )
+                      : checkInOverdue
+                        ? "Submit now. It will be recorded as late."
+                        : "Report your current standing before the deadline."}
+                  </p>
+                  <Link
+                    href="/member/check-in"
+                    className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-white px-5 font-bold text-[var(--navy)] sm:w-auto"
+                  >
+                    {submission
+                      ? "Review or revise grades"
+                      : "Submit weekly grades"}
+                    <ArrowRight className="ml-2 size-4" />
+                  </Link>
+                </>
+              )}
             </CardContent>
           </Card>
           <Card>

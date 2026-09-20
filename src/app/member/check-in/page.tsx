@@ -40,7 +40,7 @@ export default async function CheckInPage({
     submission_comment: string | null;
   } | null = null;
 
-  if (period?.currentWeek) {
+  if (period?.currentWeek?.gradeCheckRequired) {
     const { data: previousWeek } = await supabase
       .from("academic_weeks")
       .select("id")
@@ -163,6 +163,22 @@ export default async function CheckInPage({
             <p className="mt-2 text-[var(--muted)]">
               The Scholarship Chair or an Admin must configure an active
               semester covering today before weekly check-ins can be submitted.
+            </p>
+          </CardContent>
+        </Card>
+      ) : !period.currentWeek.gradeCheckRequired ? (
+        <Card>
+          <CardContent>
+            <h1 className="text-2xl font-bold text-[var(--navy)]">
+              No grade check required this week
+            </h1>
+            <p className="mt-2 text-[var(--muted)]">
+              {period.currentWeek.sequenceNumber <
+              (period.semester.firstGradeCheckSequence ?? 1)
+                ? `Grade checks begin Week ${period.semester.firstGradeCheckSequence}.`
+                : "No grade check is required for this scheduled week."}{" "}
+              Study-hour tracking and scheduled proctor sessions remain
+              available.
             </p>
           </CardContent>
         </Card>

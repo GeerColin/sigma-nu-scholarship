@@ -2,6 +2,7 @@ import "server-only";
 
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
 import { requireChairContext } from "@/lib/auth/guards";
+import { gradeCheckStatus } from "@/lib/domain/grade-checks";
 import { createClient } from "@/lib/supabase/server";
 import { createReadFailure } from "@/lib/supabase/read-failure";
 
@@ -20,7 +21,13 @@ export type MemberDirectoryItem = {
   notificationEmail: string | null;
   roles: string[];
   estimatedGpa: number | null;
-  submissionStatus: "on_time" | "late" | "missing" | "not_configured";
+  submissionStatus:
+    | "on_time"
+    | "late"
+    | "awaiting"
+    | "missing"
+    | "not_required"
+    | "not_configured";
   submittedAt: string | null;
   revisionTiming: "on_time" | "late" | null;
   revisionNumber: number | null;
@@ -148,13 +155,14 @@ export async function getMemberDirectory(filters: MemberDirectoryFilters) {
         submission?.estimated_gpa_snapshot === undefined
           ? null
           : Number(submission.estimated_gpa_snapshot),
-      submissionStatus: !weekId
+      submissionStatus: !period?.currentWeek
         ? "not_configured"
-        : submission?.original_timing === "on_time"
-          ? "on_time"
-          : submission?.original_timing === "late"
-            ? "late"
-            : "missing",
+        : gradeCheckStatus({
+            required: period.currentWeek.gradeCheckRequired,
+            submitted: Boolean(submission),
+            originalTiming: submission?.original_timing,
+            deadlineAt: period.currentWeek.deadlineAt,
+          }),
       submittedAt: submission?.original_submitted_at ?? null,
       revisionTiming: submission?.revision_timing ?? null,
       revisionNumber: submission?.revision_number ?? null,

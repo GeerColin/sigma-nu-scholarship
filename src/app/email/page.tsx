@@ -93,6 +93,7 @@ export default async function EmailPage({
   const assignmentMembers = members.filter(
     (member) => member.requiredMinutes !== null && member.notificationEmail,
   );
+  const gradeCheckRequired = period?.currentWeek?.gradeCheckRequired ?? false;
   const rowsForBatch = (batchId: string) =>
     (messages ?? []).filter((message) => message.batch_id === batchId);
 
@@ -159,7 +160,12 @@ export default async function EmailPage({
                 </div>
                 <Badge tone={count ? "warning" : "neutral"}>{count}</Badge>
               </div>
-              {period?.currentWeek && (
+              {batchType === "missing_grade_reminder" && !gradeCheckRequired ? (
+                <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm text-[var(--muted)]">
+                  No grade check is required this week, so missing-grade
+                  reminders are not eligible.
+                </p>
+              ) : period?.currentWeek ? (
                 <form action={prepareEmailBatch} className="mt-4">
                   <input
                     type="hidden"
@@ -171,7 +177,7 @@ export default async function EmailPage({
                     Prepare draft batch
                   </Button>
                 </form>
-              )}
+              ) : null}
             </CardContent>
           </Card>
         ))}

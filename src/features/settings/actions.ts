@@ -6,6 +6,8 @@ import {
   activateSemesterSchema,
   chapterConfigurationSchema,
   deadlineOverrideSchema,
+  gradeCheckRequirementSchema,
+  gradeCheckStartSchema,
   saveEmailTemplateSchema,
   semesterSchema,
   manageSemesterSchema,
@@ -104,6 +106,54 @@ export async function overrideAcademicWeekDeadline(formData: FormData) {
   revalidatePath("/");
   revalidatePath(settingsPath);
   redirect(`${settingsPath}?status=deadline-updated`);
+}
+
+export async function setSemesterGradeCheckStart(formData: FormData) {
+  await requireChairContext();
+  const parsed = gradeCheckStartSchema.safeParse({
+    semesterId: formData.get("semesterId"),
+    weekId: formData.get("weekId"),
+  });
+  if (!parsed.success)
+    redirect(`${settingsPath}?error=invalid-grade-check-start`);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_semester_grade_check_start", {
+    target_semester_id: parsed.data.semesterId,
+    target_week_id: parsed.data.weekId,
+  });
+  if (error) redirect(`${settingsPath}?error=grade-check-start-not-updated`);
+
+  revalidatePath("/");
+  revalidatePath(settingsPath);
+  revalidatePath("/analytics");
+  redirect(`${settingsPath}?status=grade-check-start-updated`);
+}
+
+export async function setAcademicWeekGradeCheckRequirement(formData: FormData) {
+  await requireChairContext();
+  const parsed = gradeCheckRequirementSchema.safeParse({
+    weekId: formData.get("weekId"),
+    required: formData.get("required"),
+  });
+  if (!parsed.success)
+    redirect(`${settingsPath}?error=invalid-grade-check-requirement`);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(
+    "set_academic_week_grade_check_required",
+    {
+      target_week_id: parsed.data.weekId,
+      required: parsed.data.required === "yes",
+    },
+  );
+  if (error)
+    redirect(`${settingsPath}?error=grade-check-requirement-not-updated`);
+
+  revalidatePath("/");
+  revalidatePath(settingsPath);
+  revalidatePath("/analytics");
+  redirect(`${settingsPath}?status=grade-check-requirement-updated`);
 }
 
 export async function updateChapterConfiguration(formData: FormData) {

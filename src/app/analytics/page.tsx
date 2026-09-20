@@ -7,6 +7,11 @@ import {
   type AnalyticsPoint,
 } from "@/features/analytics/analytics-charts";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
+import {
+  gradeCheckRequiredForWeek,
+  summarizeGradeCheckWeek,
+} from "@/lib/domain/grade-checks";
+import { dateInTimeZone } from "@/lib/domain/dates";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createReadFailure } from "@/lib/supabase/read-failure";
@@ -23,7 +28,7 @@ export default async function AnalyticsPage() {
   const supabase = await createClient();
   let data: AnalyticsPoint[] = [];
   let studySummary = {
-    assigned: 0,
+    eligible: 0,
     complete: 0,
     requiredMinutes: 0,
     completedMinutes: 0,
@@ -52,7 +57,9 @@ export default async function AnalyticsPage() {
     ] = await Promise.all([
       supabase
         .from("academic_weeks")
-        .select("id, label, sequence_number")
+        .select(
+          "id, label, sequence_number, starts_on, ends_on, deadline_at, grade_check_required",
+        )
         .eq("semester_id", period.semester.id)
         .order("sequence_number"),
       supabase
@@ -111,32 +118,82 @@ export default async function AnalyticsPage() {
       ]);
     }
 
-    const weekIds = new Set((weeks ?? []).map((week) => week.id));
-    const activeSubmissions = (submissions ?? []).filter((submission) =>
-      weekIds.has(submission.week_id),
+    const now = new Date();
+    const today = dateInTimeZone(now, period.semester.timezone);
+    const expectedCount = members?.length ?? 0;
+    const firstGradeCheckSequence = period.semester.firstGradeCheckSequence;
+    const memberNames = new Map(
+      (members ?? []).map((member) => [member.id, member.full_name]),
     );
-    const denominator = members?.length ?? 0;
+    const weekSequence = new Map(
+      (weeks ?? []).map((week) => [week.id, week.sequence_number]),
+    );
+    const weekById = new Map((weeks ?? []).map((week) => [week.id, week]));
+    const eligibleWeekIds = new Set<string>();
+    const submissionsByWeek = new Map<
+      string,
+      NonNullable<typeof submissions>
+    >();
+    for (const submission of submissions ?? []) {
+      if (!weekById.has(submission.week_id)) continue;
+      const rows = submissionsByWeek.get(submission.week_id) ?? [];
+      rows.push(submission);
+      submissionsByWeek.set(submission.week_id, rows);
+    }
+    const memberIds = new Set((members ?? []).map((member) => member.id));
+    const percent = (count: number) =>
+      expectedCount ? Math.round((count / expectedCount) * 100) : 0;
     data = (weeks ?? []).map((week) => {
-      const rows = activeSubmissions.filter(
-        (submission) => submission.week_id === week.id,
+      const beforeStart =
+        firstGradeCheckSequence !== null &&
+        week.sequence_number < firstGradeCheckSequence;
+      const future = week.starts_on > today;
+      const skipped = !week.grade_check_required;
+      const required = gradeCheckRequiredForWeek({
+        sequenceNumber: week.sequence_number,
+        firstGradeCheckSequence,
+        configuredRequired: week.grade_check_required,
+      });
+      const excludedReason = beforeStart
+        ? "pre_start"
+        : skipped
+          ? "skipped"
+          : future
+            ? "future"
+            : null;
+      if (required && !future) eligibleWeekIds.add(week.id);
+      const rows = (submissionsByWeek.get(week.id) ?? []).filter((row) =>
+        memberIds.has(row.member_id),
       );
-      const onTimeCount = rows.filter(
-        (submission) => submission.original_timing === "on_time",
-      ).length;
-      const lateCount = rows.filter(
-        (submission) => submission.original_timing === "late",
-      ).length;
-      const gpas = rows
-        .map((submission) => submission.estimated_gpa_snapshot)
-        .filter((value) => value !== null)
-        .map(Number);
-      const percent = (count: number) =>
-        denominator ? Math.round((count / denominator) * 100) : 0;
+      const summary = summarizeGradeCheckWeek({
+        activeMemberIds: [...memberIds],
+        submissions: rows.map((submission) => ({
+          memberId: submission.member_id,
+          originalTiming: submission.original_timing,
+        })),
+        required,
+        excludedReason,
+        deadlineAt: week.deadline_at,
+        now,
+      });
+      const gpas = eligibleWeekIds.has(week.id)
+        ? rows
+            .map((submission) => submission.estimated_gpa_snapshot)
+            .filter((value) => value !== null)
+            .map(Number)
+        : [];
       return {
         week: week.label,
-        onTime: percent(onTimeCount),
-        late: percent(lateCount),
-        missing: percent(Math.max(denominator - rows.length, 0)),
+        onTime: percent(summary.onTimeCount),
+        late: percent(summary.lateCount),
+        awaiting: percent(summary.awaitingCount),
+        missing: percent(summary.missingCount),
+        onTimeCount: summary.onTimeCount,
+        lateCount: summary.lateCount,
+        awaitingCount: summary.awaitingCount,
+        missingCount: summary.missingCount,
+        expectedCount: summary.expectedCount,
+        excludedReason,
         estimatedGpa: gpas.length
           ? Number(
               (
@@ -147,11 +204,8 @@ export default async function AnalyticsPage() {
       };
     });
 
-    const memberNames = new Map(
-      (members ?? []).map((member) => [member.id, member.full_name]),
-    );
-    const weekSequence = new Map(
-      (weeks ?? []).map((week) => [week.id, week.sequence_number]),
+    const activeSubmissions = (submissions ?? []).filter((submission) =>
+      eligibleWeekIds.has(submission.week_id),
     );
     const submissionsByMember = new Map<
       string,
@@ -233,27 +287,69 @@ export default async function AnalyticsPage() {
           session.duration_minutes,
       );
     }
-    studySummary = (assignments ?? []).reduce(
-      (summary, assignment) => {
-        const requiredMinutes = Number(assignment.final_hours) * 60;
-        const completedMinutes =
-          completedByMember.get(assignment.member_id) ?? 0;
-        summary.assigned += 1;
-        summary.requiredMinutes += requiredMinutes;
-        summary.completedMinutes += completedMinutes;
-        if (completedMinutes >= requiredMinutes) summary.complete += 1;
-        return summary;
-      },
-      { assigned: 0, complete: 0, requiredMinutes: 0, completedMinutes: 0 },
-    );
+    studySummary = (assignments ?? [])
+      .filter(
+        (assignment) =>
+          memberIds.has(assignment.member_id) &&
+          Number(assignment.final_hours) > 0,
+      )
+      .reduce(
+        (summary, assignment) => {
+          const requiredMinutes = Number(assignment.final_hours) * 60;
+          const completedMinutes =
+            completedByMember.get(assignment.member_id) ?? 0;
+          summary.eligible += 1;
+          summary.requiredMinutes += requiredMinutes;
+          summary.completedMinutes += completedMinutes;
+          if (completedMinutes >= requiredMinutes) summary.complete += 1;
+          return summary;
+        },
+        { eligible: 0, complete: 0, requiredMinutes: 0, completedMinutes: 0 },
+      );
   }
 
   const current = data.find(
     (point) => point.week === period?.currentWeek?.label,
   );
-  const completionRate = studySummary.assigned
-    ? Math.round((studySummary.complete / studySummary.assigned) * 100)
-    : 0;
+  const currentWeekLabel = period?.currentWeek?.label ?? "No displayed week";
+  const gradeCheckCardUnavailable = !period
+    ? "No active semester"
+    : !period.currentWeek || !current
+      ? "No displayed week"
+      : null;
+  const studyCardUnavailable = !period ? "No active semester" : null;
+  const analyticsWindowMessage = !period
+    ? "No active semester is configured."
+    : !period.currentWeek
+      ? "No current academic week is available."
+      : current?.excludedReason === "pre_start"
+        ? `Grade checks begin ${period.semester.firstGradeCheckSequence ? `Week ${period.semester.firstGradeCheckSequence}` : "later in the semester"}.`
+        : current?.excludedReason === "skipped"
+          ? "No grade check required this week."
+          : current?.excludedReason === "future"
+            ? "The current academic week is in the future."
+            : null;
+  const studyEmpty = studySummary.eligible === 0;
+  const onTimeCard =
+    gradeCheckCardUnavailable ??
+    (current?.excludedReason
+      ? "Excluded"
+      : `${current?.onTimeCount ?? 0} / ${current?.expectedCount ?? 0} members`);
+  const lateMissingCard =
+    gradeCheckCardUnavailable ??
+    (current?.excludedReason
+      ? "Excluded"
+      : `${current?.lateCount ?? 0} late · ${current?.missingCount ?? 0} missing`);
+  const studyCompletionCard =
+    studyCardUnavailable ??
+    (studyEmpty
+      ? "No positive requirements"
+      : `${studySummary.complete} / ${studySummary.eligible} members completed`);
+  const studyHoursCard =
+    studyCardUnavailable ??
+    (studyEmpty
+      ? "No positive requirements"
+      : `${hours(studySummary.completedMinutes)} / ${hours(studySummary.requiredMinutes)} hr`);
 
   return (
     <ChairAppShell>
@@ -263,18 +359,22 @@ export default async function AnalyticsPage() {
         description="Submission, GPA, course, and study-hour analytics calculated from the same authoritative records used throughout the application."
       />
 
+      {analyticsWindowMessage && (
+        <div className="mb-5 rounded-xl bg-[var(--surface-subtle)] p-4">
+          <p className="font-bold text-[var(--navy)]">Analytics window</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {analyticsWindowMessage} Historical records remain available, but
+            excluded weeks do not count as missing submissions.
+          </p>
+        </div>
+      )}
+
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Current on-time rate", `${current?.onTime ?? 0}%`],
-          [
-            "Late / missing this week",
-            `${current?.late ?? 0}% / ${current?.missing ?? 0}%`,
-          ],
-          ["Study-hour completion", `${completionRate}%`],
-          [
-            "Required / completed",
-            `${hours(studySummary.requiredMinutes)} / ${hours(studySummary.completedMinutes)} hr`,
-          ],
+          ["On-time check-ins", onTimeCard],
+          ["Late / missing this week", lateMissingCard],
+          ["Study-hour completion", studyCompletionCard],
+          ["Completed / required", studyHoursCard],
         ].map(([label, value]) => (
           <Card key={label}>
             <CardContent>
@@ -288,6 +388,16 @@ export default async function AnalyticsPage() {
           </Card>
         ))}
       </div>
+      <p className="mb-2 text-sm text-[var(--muted)]">
+        Reporting week:{" "}
+        <span className="font-semibold">{currentWeekLabel}</span>
+        {current?.excludedReason ? " · excluded from compliance totals" : ""}
+      </p>
+      <p className="mb-4 text-xs text-[var(--muted)]">
+        Expected grade-check counts use the active roster. The current data
+        model does not store historical membership effective dates, so roster
+        changes are not retroactively inferred for prior weeks.
+      </p>
 
       <Card>
         <CardContent>

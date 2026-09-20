@@ -8,6 +8,8 @@ import {
   createSemester,
   manageSemester,
   overrideAcademicWeekDeadline,
+  setAcademicWeekGradeCheckRequirement,
+  setSemesterGradeCheckStart,
 } from "@/features/settings/actions";
 import { ChapterConfiguration } from "@/features/settings/chapter-configuration";
 import { requireChairContext } from "@/lib/auth/guards";
@@ -29,6 +31,10 @@ const statusMessages: Record<string, string> = {
   "semester-managed": "The semester change was saved and audited.",
   "semester-activated": "The selected semester is now active.",
   "deadline-updated": "The academic-week deadline was updated.",
+  "grade-check-start-updated":
+    "The first grade-check week was updated and audited.",
+  "grade-check-requirement-updated":
+    "The grade-check requirement was updated and audited.",
   "configuration-updated": "Chapter configuration was updated and audited.",
   "email-template-saved": "A new active email-template version was saved.",
 };
@@ -52,7 +58,7 @@ export default async function SettingsPage({
   const { data: semesters, error } = await supabase
     .from("semesters")
     .select(
-      "id, name, start_date, end_date, timezone, default_deadline_weekday, default_deadline_time, active, archived_at, academic_weeks(id, sequence_number, label, starts_on, ends_on, deadline_at, deadline_overridden)",
+      "id, name, start_date, end_date, timezone, default_deadline_weekday, default_deadline_time, first_grade_check_week_id, active, archived_at, academic_weeks(id, sequence_number, label, starts_on, ends_on, deadline_at, deadline_overridden, grade_check_required)",
     )
     .eq("chapter_id", context.chapterId!)
     .order("start_date", { ascending: false });
@@ -82,7 +88,11 @@ export default async function SettingsPage({
         >
           {query.error === "semester-management-failed"
             ? "The semester change could not be saved. Semesters with dependent records cannot be deleted; archive them instead. Names must be unique. No partial change was saved."
-            : "We couldn’t save that semester change. Check the form and confirmation before trying again."}
+            : query.error === "grade-check-start-not-updated"
+              ? "The first grade-check week could not be updated. Choose a week from this semester and try again."
+              : query.error === "grade-check-requirement-not-updated"
+                ? "The grade-check requirement could not be updated. Try again."
+                : "We couldn’t save that semester change. Check the form and confirmation before trying again."}
         </p>
       )}
 
@@ -249,6 +259,54 @@ export default async function SettingsPage({
                     )}
                   </div>
                 </CardHeader>
+                <div className="border-t bg-[var(--surface-subtle)] p-5">
+                  <form
+                    action={setSemesterGradeCheckStart}
+                    className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+                  >
+                    <input
+                      type="hidden"
+                      name="semesterId"
+                      value={semester.id}
+                    />
+                    <label>
+                      <span className="block font-semibold text-[var(--navy)]">
+                        First grade-check week
+                      </span>
+                      <span className="mt-1 block text-sm text-[var(--muted)]">
+                        Weeks before this are excluded from overdue and missing
+                        status.
+                      </span>
+                      <select
+                        name="weekId"
+                        required
+                        defaultValue={
+                          semester.first_grade_check_week_id ??
+                          (semester.academic_weeks as Array<{ id: string }>)[0]
+                            ?.id
+                        }
+                        className="mt-2 min-h-11 w-full rounded-xl border bg-white px-3"
+                      >
+                        {(
+                          semester.academic_weeks as Array<{
+                            id: string;
+                            label: string;
+                            sequence_number: number;
+                          }>
+                        )
+                          .toSorted(
+                            (a, b) => a.sequence_number - b.sequence_number,
+                          )
+                          .map((week) => (
+                            <option key={week.id} value={week.id}>
+                              {week.label}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <Button type="submit">Save start week</Button>
+                  </form>
+                </div>
                 <details>
                   <summary className="cursor-pointer border-t px-5 py-3 font-semibold">
                     Manage semester
@@ -326,6 +384,7 @@ export default async function SettingsPage({
                         ends_on: string;
                         deadline_at: string;
                         deadline_overridden: boolean;
+                        grade_check_required: boolean;
                       }>
                     )
                       .toSorted((a, b) => a.sequence_number - b.sequence_number)
@@ -341,6 +400,9 @@ export default async function SettingsPage({
                               </p>
                               {week.deadline_overridden && (
                                 <Badge tone="warning">Overridden</Badge>
+                              )}
+                              {!week.grade_check_required && (
+                                <Badge>No grade check required</Badge>
                               )}
                             </div>
                             <p className="mt-1 text-sm text-[var(--muted)]">
@@ -403,6 +465,38 @@ export default async function SettingsPage({
                               </form>
                             </details>
                           )}
+                          <form
+                            action={setAcademicWeekGradeCheckRequirement}
+                            className="flex flex-wrap items-center gap-2 lg:justify-end"
+                          >
+                            <input
+                              type="hidden"
+                              name="weekId"
+                              value={week.id}
+                            />
+                            <label className="text-sm font-semibold text-[var(--muted)]">
+                              <span className="sr-only">
+                                Grade-check requirement for {week.label}
+                              </span>
+                              <select
+                                name="required"
+                                defaultValue={
+                                  week.grade_check_required ? "yes" : "no"
+                                }
+                                className="min-h-10 rounded-xl border bg-white px-3"
+                              >
+                                <option value="yes">
+                                  Grade check required
+                                </option>
+                                <option value="no">
+                                  No grade check required
+                                </option>
+                              </select>
+                            </label>
+                            <Button type="submit" className="min-h-10">
+                              Save requirement
+                            </Button>
+                          </form>
                         </article>
                       ))}
                   </div>

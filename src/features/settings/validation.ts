@@ -38,6 +38,16 @@ export const deadlineOverrideSchema = z.object({
   deadlineTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
 });
 
+export const gradeCheckStartSchema = z.object({
+  semesterId: z.string().uuid(),
+  weekId: z.string().uuid(),
+});
+
+export const gradeCheckRequirementSchema = z.object({
+  weekId: z.string().uuid(),
+  required: z.enum(["yes", "no"]),
+});
+
 export const chapterConfigurationSchema = z.object({
   percentageAlertDrop: z.coerce.number().min(0).max(100),
   letterAlertSteps: z.coerce.number().int().min(1).max(12),

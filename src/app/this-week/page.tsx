@@ -5,13 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMemberDirectory } from "@/features/members/queries";
 
-const statuses = ["all", "on_time", "late", "missing"] as const;
+const statuses = [
+  "all",
+  "on_time",
+  "late",
+  "awaiting",
+  "missing",
+  "not_required",
+] as const;
 type StatusFilter = (typeof statuses)[number];
 
 const labels = {
   on_time: "On Time",
   late: "Late",
+  awaiting: "Awaiting submission",
   missing: "Missing",
+  not_required: "No grade check required",
   not_configured: "Not configured",
 } as const;
 
@@ -29,8 +38,13 @@ export default async function ThisWeekPage({
     on_time: members.filter((member) => member.submissionStatus === "on_time")
       .length,
     late: members.filter((member) => member.submissionStatus === "late").length,
+    awaiting: members.filter((member) => member.submissionStatus === "awaiting")
+      .length,
     missing: members.filter((member) => member.submissionStatus === "missing")
       .length,
+    not_required: members.filter(
+      (member) => member.submissionStatus === "not_required",
+    ).length,
   };
   const shown =
     selectedStatus === "all"
@@ -50,14 +64,19 @@ export default async function ThisWeekPage({
         title="Weekly check-ins"
         description={
           period?.currentWeek
-            ? "Deadline: " +
-              new Intl.DateTimeFormat(undefined, {
-                timeZone: period.semester.timezone,
-                dateStyle: "full",
-                timeStyle: "short",
-              }).format(new Date(period.currentWeek.deadlineAt)) +
-              " · " +
-              period.semester.timezone
+            ? period.currentWeek.gradeCheckRequired
+              ? "Deadline: " +
+                new Intl.DateTimeFormat(undefined, {
+                  timeZone: period.semester.timezone,
+                  dateStyle: "full",
+                  timeStyle: "short",
+                }).format(new Date(period.currentWeek.deadlineAt)) +
+                " · " +
+                period.semester.timezone
+              : period.currentWeek.sequenceNumber <
+                  (period.semester.firstGradeCheckSequence ?? 1)
+                ? `Grade checks begin Week ${period.semester.firstGradeCheckSequence ?? "later in the semester"}.`
+                : "No grade check required this week."
             : "No current academic week is configured."
         }
       />
@@ -82,12 +101,28 @@ export default async function ThisWeekPage({
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
+          {!period.currentWeek.gradeCheckRequired && (
+            <div className="mb-5 rounded-xl bg-[var(--surface-subtle)] p-4">
+              <p className="font-bold text-[var(--navy)]">
+                {period.currentWeek.sequenceNumber <
+                (period.semester.firstGradeCheckSequence ?? 1)
+                  ? `Grade checks begin Week ${period.semester.firstGradeCheckSequence}.`
+                  : "No grade check required this week."}
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Members may still log study time and attend scheduled proctor
+                sessions.
+              </p>
+            </div>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {(
               [
                 ["On Time", counts.on_time, "success"],
                 ["Late", counts.late, "warning"],
+                ["Awaiting submission", counts.awaiting, "neutral"],
                 ["Missing", counts.missing, "danger"],
+                ["No grade check", counts.not_required, "neutral"],
               ] as const
             ).map(([label, value, tone]) => (
               <Card key={label}>
@@ -156,7 +191,9 @@ export default async function ThisWeekPage({
                           ? "success"
                           : member.submissionStatus === "late"
                             ? "warning"
-                            : "danger"
+                            : member.submissionStatus === "missing"
+                              ? "danger"
+                              : "neutral"
                       }
                     >
                       {labels[member.submissionStatus]}

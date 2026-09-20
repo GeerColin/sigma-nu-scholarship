@@ -76,8 +76,13 @@ export default async function DashboardPage() {
     onTime: members.filter((member) => member.submissionStatus === "on_time")
       .length,
     late: members.filter((member) => member.submissionStatus === "late").length,
+    awaiting: members.filter((member) => member.submissionStatus === "awaiting")
+      .length,
     missing: members.filter((member) => member.submissionStatus === "missing")
       .length,
+    notRequired: members.filter(
+      (member) => member.submissionStatus === "not_required",
+    ).length,
   };
   const studyStatus = {
     complete: members.filter(
@@ -133,6 +138,16 @@ export default async function DashboardPage() {
           detail: "Late submissions are recorded separately from on-time work.",
           action: "Review Late Submissions",
           href: "/this-week?status=late",
+          icon: Clock3,
+          tone: "warning",
+        }
+      : null,
+    weeklyStatus.awaiting > 0
+      ? {
+          title: `${weeklyStatus.awaiting} awaiting grade check${weeklyStatus.awaiting === 1 ? "" : "s"}`,
+          detail: "The configured deadline has not passed.",
+          action: "Review This Week",
+          href: "/this-week?status=awaiting",
           icon: Clock3,
           tone: "warning",
         }
@@ -207,7 +222,11 @@ export default async function DashboardPage() {
           ) : (
             <Settings className="size-4" />
           )}
-          {period?.currentWeek ? "Current week active" : "Setup required"}
+          {period?.currentWeek
+            ? period.currentWeek.gradeCheckRequired
+              ? "Current week active"
+              : "No grade check this week"
+            : "Setup required"}
         </Badge>
       </div>
 
@@ -331,7 +350,7 @@ export default async function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <Card className="overflow-hidden border-0 bg-[var(--navy)] text-white sm:col-span-2 xl:col-span-1">
               <CardContent>
                 <div className="mb-5 flex items-center justify-between">
@@ -359,7 +378,9 @@ export default async function DashboardPage() {
               [
                 ["On Time", weeklyStatus.onTime, "success"],
                 ["Late", weeklyStatus.late, "warning"],
+                ["Awaiting", weeklyStatus.awaiting, "neutral"],
                 ["Missing", weeklyStatus.missing, "danger"],
+                ["No grade check", weeklyStatus.notRequired, "neutral"],
               ] as const
             ).map(([label, value, tone]) => (
               <Card key={label}>
