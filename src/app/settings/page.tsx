@@ -415,7 +415,10 @@ export default async function SettingsPage({
                           </div>
                           {semester.active && (
                             <details className="rounded-xl border">
-                              <summary className="min-h-11 cursor-pointer px-3 py-2.5 font-semibold text-[var(--navy)]">
+                              <summary
+                                aria-label={`Change deadline for ${week.label}`}
+                                className="min-h-11 cursor-pointer px-3 py-2.5 font-semibold text-[var(--navy)]"
+                              >
                                 Change deadline
                               </summary>
                               <form
@@ -493,7 +496,11 @@ export default async function SettingsPage({
                                 </option>
                               </select>
                             </label>
-                            <Button type="submit" className="min-h-10">
+                            <Button
+                              type="submit"
+                              aria-label={`Save grade-check requirement for ${week.label}`}
+                              className="min-h-10"
+                            >
                               Save requirement
                             </Button>
                           </form>

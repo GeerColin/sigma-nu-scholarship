@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import ErrorPage from "@/app/error";
 import { CourseManager } from "@/features/courses/course-manager";
 import { WeeklyCheckInForm } from "@/features/grades/weekly-check-in-form";
+import { RoleControl } from "@/features/administration/role-control";
 import {
   ProctorSessionLogger,
   type SessionItem,
@@ -23,6 +24,9 @@ vi.mock("@/features/study-hours/actions", () => ({
   recordStudySession: vi.fn(),
   correctStudySession: vi.fn(),
   editOwnStudySession: vi.fn(),
+}));
+vi.mock("@/features/administration/actions", () => ({
+  manageMemberRole: vi.fn(),
 }));
 
 afterEach(() => {
@@ -212,5 +216,41 @@ describe("synthetic usability interactions", () => {
     expect(screen.getAllByText("Edit entry")).toHaveLength(1);
     expect(screen.getAllByText("Locked")).toHaveLength(2);
     expect(screen.queryByLabelText("Correction reason")).toBeNull();
+  });
+
+  it("gives repeated role controls a member-specific accessible name", () => {
+    render(
+      createElement(
+        "div",
+        null,
+        createElement(RoleControl, {
+          memberId: "synthetic-member",
+          memberName: "Synthetic Member",
+          label: "Proctor",
+          role: "proctor",
+          enabled: false,
+          canManage: true,
+        }),
+        createElement(RoleControl, {
+          memberId: "synthetic-member",
+          memberName: "Synthetic Member",
+          label: "Admin",
+          role: "admin",
+          enabled: true,
+          canManage: true,
+        }),
+      ),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Assign Proctor role to Synthetic Member",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: "Remove Admin role from Synthetic Member",
+      }),
+    ).toBeTruthy();
   });
 });

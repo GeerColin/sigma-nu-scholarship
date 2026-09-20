@@ -304,7 +304,10 @@ export default async function StudyHoursPage({
                             <td className="block p-4 xl:table-cell xl:py-4 xl:pr-0 xl:pl-2">
                               {member.assignmentId ? (
                                 <details className="w-full rounded-xl border xl:min-w-64">
-                                  <summary className="cursor-pointer p-3 font-semibold text-[var(--navy)]">
+                                  <summary
+                                    aria-label={`Manage study hours for ${member.name}`}
+                                    className="cursor-pointer p-3 font-semibold text-[var(--navy)]"
+                                  >
                                     Manage
                                   </summary>
                                   <div className="space-y-4 border-t p-3">

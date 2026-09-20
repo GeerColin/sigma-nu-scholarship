@@ -230,8 +230,11 @@ export async function AccessManagement({
                 >
                   <input type="hidden" name="memberId" value={member.id} />
                   <label className="min-w-0">
-                    <span className="sr-only">Disconnection reason</span>
+                    <span className="sr-only">
+                      Disconnection reason for {member.full_name}
+                    </span>
                     <input
+                      aria-label={`Disconnection reason for ${member.full_name}`}
                       name="reason"
                       required
                       minLength={2}
@@ -247,6 +250,7 @@ export async function AccessManagement({
                   </label>
                   <label className="flex items-start gap-2 text-sm sm:col-span-2">
                     <input
+                      aria-label={`Confirm disconnecting ${member.full_name}`}
                       type="checkbox"
                       name="confirmed"
                       value="yes"
@@ -260,6 +264,7 @@ export async function AccessManagement({
                   </label>
                   <Button
                     type="submit"
+                    aria-label={`Disconnect ${member.full_name}`}
                     disabled={isChair}
                     className="bg-[var(--danger)] hover:bg-[var(--danger)] sm:col-start-2 sm:row-start-1"
                   >

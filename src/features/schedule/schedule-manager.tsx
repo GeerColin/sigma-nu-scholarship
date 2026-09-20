@@ -186,7 +186,10 @@ export async function ScheduleManager({
             </CardHeader>
             <CardContent>
               <details>
-                <summary className="cursor-pointer font-semibold text-[var(--navy)]">
+                <summary
+                  aria-label={`Edit recurring session on ${weekdays[series.dayOfWeek]} from ${series.startTime.slice(0, 5)} to ${series.endTime.slice(0, 5)}`}
+                  className="cursor-pointer font-semibold text-[var(--navy)]"
+                >
                   Edit recurring session
                 </summary>
                 <form
@@ -286,7 +289,10 @@ export async function ScheduleManager({
                 </form>
               </details>
               <details className="mt-4 border-t pt-4">
-                <summary className="cursor-pointer font-semibold text-[var(--danger)]">
+                <summary
+                  aria-label={`Remove recurring session on ${weekdays[series.dayOfWeek]} from ${series.startTime.slice(0, 5)} to ${series.endTime.slice(0, 5)}`}
+                  className="cursor-pointer font-semibold text-[var(--danger)]"
+                >
                   Remove recurring session
                 </summary>
                 <form

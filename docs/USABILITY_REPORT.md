@@ -80,3 +80,44 @@ The [diagnostic deployment](https://vercel.com/sigma-nu/sigma-nu-scholarship/FaY
 The Chair interface has passed the documented deployed responsive checks, but the whole phase is not fully signed off for a real-member pilot. Resolve or adequately characterize the recurring fresh-load read failures first. Separate synthetic Google accounts must still exercise the Member homepage/check-in/course flow and pure-Proctor logging/current-week edit/old-session lock. The complete separate-account authorization matrix remains deferred; automated RLS and mocked DOM coverage are not its replacement. Do not automatically import the real roster or academic records.
 
 No real roster/academic data was imported into Supabase by the agent in this phase, no external email delivery was enabled, no Notification Center/bell/inbox was built, and no credentials were committed by the agent. The agent left roster-import.csv untouched and excluded it from the usability commit; the user's subsequent manual commit tracks it. Existing non-synthetic member records were not used as mutation-test subjects. No database import was performed by the agent.
+
+## 14. UI functionality and visual-polish follow-up — 2026-09-20
+
+This follow-up used the current deployed Chair session and the local development project. No form was submitted, no production setting was changed, and no roster or academic record was mutated.
+
+### Browser checklist
+
+| Surface                                                           | Result                     | Evidence / limitation                                                                                                                  |
+| ----------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Chair Dashboard                                                   | Passed                     | Direct load settled from the loading state and showed attention, check-in, study-hour, and recurring-schedule summaries.               |
+| Members, search, and member detail                                | Passed                     | Search narrowed the directory and a profile opened with overview, courses, history, study sessions, and alerts.                        |
+| This Week and status filter                                       | Passed                     | Counts rendered and the Awaiting filter updated the URL and list without mutation.                                                     |
+| Schedule and recurring schedule administration                    | Passed                     | Week navigation, occurrences, add-session form, and permission-aware management controls rendered.                                     |
+| Study Hours                                                       | Passed                     | Status filters, stacked/table layouts, assignment state, and management disclosure rendered.                                           |
+| Analytics                                                         | Passed                     | Summary metrics, reporting-week note, chart legends/axes, and course movement sections rendered.                                       |
+| Settings                                                          | Passed                     | Chapter settings, first grade-check week, per-week requirements, and deadline disclosures rendered.                                    |
+| Administration, access, roles, import, setup, guide, and email    | Passed                     | Direct routes and empty/pending states rendered; destructive controls were not submitted.                                              |
+| Chair Member and Proctor workspaces                               | Passed                     | Chair workspace switcher reached Member home/check-in/courses/history and the Proctor portal.                                          |
+| Login and signed-out protected routes                             | Passed locally             | `/login` rendered at 360, 390, 768, and 1440 widths; `/request-access` and `/awaiting-approval` redirected to login without a session. |
+| Separate Awaiting Approval, Member, Proctor, and Admin identities | Not verified in this sweep | Requires separate synthetic Google accounts/browser profiles; existing RLS/route tests remain the evidence for those boundaries.       |
+
+### Fix applied
+
+Repeated controls now expose contextual accessible names without changing their visible labels or behavior. Role assignment/removal includes the member and role; recurring-session edit/remove includes weekday and time; Study Hours management includes the member; Settings deadline/requirement controls include the week; and account-disconnection fields/actions include the member. A focused DOM regression test covers member-specific role-control names.
+
+### Responsive evidence
+
+The current mobile login surface was captured at 390×844 and remained fully visible with no horizontal overflow. A local browser measurement round at 360×800, 390×844, 768×1024, and 1440×900 reported `scrollWidth <= innerWidth` for each login render. The previously recorded authenticated Chair responsive round remains applicable to layout (17 routes at each 390×844, 430×932, 768×1024, 1366×768, and 1920×1080); this follow-up changes only accessibility names, not layout geometry. Representative desktop Analytics/Settings and mobile Login screenshots were inspected during this sweep.
+
+### Verification
+
+- Unit/DOM suite: 155 tests across 28 files passed.
+- PostgreSQL/RLS suite: 249 checks across 16 files passed.
+- ESLint, strict TypeScript, Prettier verification, production build, and `git diff --check` passed.
+- No blind retry, RLS change, secret-key shortcut, email send, destructive action, or real-data import was performed.
+
+### Larger recommendations (not implemented)
+
+1. Add Playwright storage-state coverage for separate synthetic Chair, Admin, Proctor, Member, and Awaiting Approval identities. This would turn the remaining role limitation into repeatable E2E evidence; it requires maintaining test OAuth identities and isolated data.
+2. Add a small route/viewport smoke matrix to CI for the 17 key surfaces. This would catch regressions in loading/redirect behavior and mobile overflow earlier, at the cost of browser-runtime time and test-environment maintenance.
+3. Consider a dedicated “More administration” mobile menu if the Chair navigation grows. It would reduce bottom-navigation density, but adds one extra interaction for less-frequent pages.
