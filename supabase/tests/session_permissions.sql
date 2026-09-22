@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(7);
+select plan(9);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values
@@ -49,7 +49,17 @@ select throws_ok($$select public.correct_study_session('91000000-0000-4000-8000-
 select set_config('request.jwt.claim.sub', '91000000-0000-4000-8000-000000000001', true);
 select lives_ok($$select public.correct_study_session('91000000-0000-4000-8000-000000000030', current_date - 10, 90, 'Chair correction', 'Verified synthetic correction')$$, 'Chair can correct an older session');
 select is((select count(*)::integer from public.audit_log where action = 'study_session_corrected'), 1, 'administrative correction is audited');
+select lives_ok($$select public.edit_own_current_week_session(public.record_study_session('91000000-0000-4000-8000-000000000014', '91000000-0000-4000-8000-000000000022', current_date, 45), current_date, 60)$$,
+  'Chair without a separate Proctor role can edit a session they logged');
+set local role postgres;
+set local timezone = 'Etc/GMT+12';
+update public.semesters set timezone = 'Pacific/Kiritimati' where id = '91000000-0000-4000-8000-000000000020';
+insert into public.academic_weeks(id, chapter_id, semester_id, sequence_number, label, starts_on, ends_on, deadline_at)
+values ('91000000-0000-4000-8000-000000000023', '91000000-0000-4000-8000-000000000010', '91000000-0000-4000-8000-000000000020', 3, 'Synthetic timezone boundary', timezone('Pacific/Kiritimati', now())::date, timezone('Pacific/Kiritimati', now())::date, now()+interval '1 hour');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '91000000-0000-4000-8000-000000000002', true);
+select lives_ok($$select public.edit_own_current_week_session(public.record_study_session('91000000-0000-4000-8000-000000000014', '91000000-0000-4000-8000-000000000023', timezone('Pacific/Kiritimati',now())::date, 45), timezone('Pacific/Kiritimati',now())::date, 60)$$,
+  'current-week edits use semester local date, not database session date');
 
 select * from finish();
 rollback;
-

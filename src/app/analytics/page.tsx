@@ -15,6 +15,7 @@ import { dateInTimeZone } from "@/lib/domain/dates";
 import { requireChairContext } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createReadFailure } from "@/lib/supabase/read-failure";
+import { readAllPages } from "@/lib/supabase/read-all-pages";
 
 function hours(minutes: number) {
   return (minutes / 60).toLocaleString(undefined, {
@@ -47,6 +48,7 @@ export default async function AnalyticsPage() {
   }> = [];
 
   if (period) {
+    const currentWeekId = period.currentWeek?.id;
     const [
       { data: weeks, error: weeksError, status: weeksStatus },
       { data: submissions, error: submissionsError, status: submissionsStatus },
@@ -62,38 +64,56 @@ export default async function AnalyticsPage() {
         )
         .eq("semester_id", period.semester.id)
         .order("sequence_number"),
-      supabase
-        .from("grade_submissions")
-        .select(
-          "id, member_id, week_id, original_timing, estimated_gpa_snapshot",
-        )
-        .eq("chapter_id", context.chapterId!)
-        .eq("is_current", true),
+      readAllPages((from, to) =>
+        supabase
+          .from("grade_submissions")
+          .select(
+            "id, member_id, week_id, original_timing, estimated_gpa_snapshot, academic_weeks!inner(semester_id)",
+          )
+          .eq("chapter_id", context.chapterId!)
+          .eq("academic_weeks.semester_id", period.semester.id)
+          .eq("is_current", true)
+          .order("id")
+          .range(from, to),
+      ),
       supabase
         .from("members")
         .select("id, full_name, status")
         .eq("chapter_id", context.chapterId!)
         .eq("status", "active"),
-      supabase
-        .from("grade_entries")
-        .select(
-          "submission_id, course_name_snapshot, reported_value, grading_type_snapshot",
-        )
-        .eq("chapter_id", context.chapterId!),
-      period.currentWeek
+      readAllPages((from, to) =>
+        supabase
+          .from("grade_entries")
+          .select(
+            "submission_id, course_name_snapshot, reported_value, grading_type_snapshot, grade_submissions!inner(is_current, academic_weeks!inner(semester_id))",
+          )
+          .eq("chapter_id", context.chapterId!)
+          .eq("grade_submissions.is_current", true)
+          .eq(
+            "grade_submissions.academic_weeks.semester_id",
+            period.semester.id,
+          )
+          .order("id")
+          .range(from, to),
+      ),
+      currentWeekId
         ? supabase
             .from("study_hour_assignments")
             .select("member_id, final_hours")
             .eq("chapter_id", context.chapterId!)
-            .eq("week_id", period.currentWeek.id)
+            .eq("week_id", currentWeekId)
         : Promise.resolve({ data: [], error: null }),
-      period.currentWeek
-        ? supabase
-            .from("study_sessions")
-            .select("member_id, duration_minutes")
-            .eq("chapter_id", context.chapterId!)
-            .eq("week_id", period.currentWeek.id)
-            .is("voided_at", null)
+      currentWeekId
+        ? readAllPages((from, to) =>
+            supabase
+              .from("study_sessions")
+              .select("member_id, duration_minutes")
+              .eq("chapter_id", context.chapterId!)
+              .eq("week_id", currentWeekId)
+              .is("voided_at", null)
+              .order("id")
+              .range(from, to),
+          )
         : Promise.resolve({ data: [], error: null }),
     ]);
     if (
@@ -204,8 +224,10 @@ export default async function AnalyticsPage() {
       };
     });
 
-    const activeSubmissions = (submissions ?? []).filter((submission) =>
-      eligibleWeekIds.has(submission.week_id),
+    const activeSubmissions = (submissions ?? []).filter(
+      (submission) =>
+        eligibleWeekIds.has(submission.week_id) &&
+        memberIds.has(submission.member_id),
     );
     const submissionsByMember = new Map<
       string,

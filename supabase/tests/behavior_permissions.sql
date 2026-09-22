@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(10);
+select plan(11);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values
@@ -46,7 +46,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
 select is((select count(*)::integer from public.members), 1, 'member can read only their own member row');
 select is((select count(*)::integer from public.grade_entries), 0, 'member cannot retrieve another member grade entry');
-update public.study_hour_assignments set override_hours = 0;
+select throws_ok($$update public.study_hour_assignments set override_hours = 0$$,
+  '42501', 'permission denied for table study_hour_assignments', 'member cannot write assignment overrides directly');
 select is((select override_hours from public.study_hour_assignments where id = '10000000-0000-4000-8000-000000000023'), null::integer, 'member cannot override study hours');
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);

@@ -55,6 +55,9 @@ select lives_ok($$select public.set_academic_week_grade_check_required('82000000
 select is(public.is_grade_check_required('82000000-0000-4000-8000-000000000033'), false, 'skipped week is excluded');
 select throws_ok($$select public.prepare_email_batch('82000000-0000-4000-8000-000000000033', 'missing_grade_reminder')$$, 'P0001', 'Missing-grade reminders are not eligible for this week', 'skipped weeks cannot create missing-grade reminders');
 select is(public.is_grade_check_required('82000000-0000-4000-8000-000000000034'), true, 'later week remains required');
+-- Exercise the domain trigger with a privileged fixture, independently of the
+-- authenticated role's earlier table-grant denial.
+set local role postgres;
 select throws_ok($$insert into public.grade_submissions(chapter_id, member_id, week_id, revision_number, original_submitted_at, deadline_at_snapshot, original_timing, revision_timing) values ('82000000-0000-4000-8000-000000000010', '82000000-0000-4000-8000-000000000013', '82000000-0000-4000-8000-000000000031', 1, now(), now(), 'on_time', 'on_time')$$, 'P0001', 'No grade check is required for this week', 'pre-start submissions are rejected');
 
 set local role postgres;

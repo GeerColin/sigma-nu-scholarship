@@ -15,6 +15,20 @@ function emptyExportData(): SemesterExportData {
 }
 
 describe("semester export", () => {
+  it.each(["=1+2", "+1+2", "-1+2", "@SUM(1)", "  =1+2", "\t=1+2", "＝1+2"])(
+    "exports formula-like user text as a quoted text cell: %j",
+    (value) => {
+      expect(rowsToCsv([{ value }], ["value"])).toBe(`value\r\n"'${value}"`);
+    },
+  );
+
+  it("preserves actual numbers and quotes alternate delimiters", () => {
+    expect(rowsToCsv([{ value: -2 }], ["value"])).toBe("value\r\n-2");
+    expect(rowsToCsv([{ value: "Synthetic;=1+2" }], ["value"])).toBe(
+      'value\r\n"Synthetic;=1+2"',
+    );
+  });
+
   it("escapes commas, quotes, newlines, and JSON values in CSV", () => {
     const csv = rowsToCsv(
       [

@@ -266,7 +266,15 @@ function csvValue(value: unknown) {
   if (value === null || value === undefined) return "";
   const text =
     typeof value === "object" ? JSON.stringify(value) : String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  // CSV quoting alone does not prevent spreadsheet formula interpretation.
+  // Preserve numeric values, but explicitly mark formula-like user text as text.
+  const formulaLike =
+    typeof value === "string" &&
+    (/^[=+\-@＝＋－＠]/u.test(text.trimStart()) || /^[\t\r\n]/.test(text));
+  const safeText = formulaLike ? `'${text}` : text;
+  return formulaLike || /[",;\r\n]/.test(safeText)
+    ? `"${safeText.replaceAll('"', '""')}"`
+    : safeText;
 }
 
 export function rowsToCsv(rows: ExportRow[], columns: readonly string[]) {
@@ -315,6 +323,7 @@ export function createSemesterExportArchive({
           "Member, role, rule, template, chapter setting, and audit files are chapter-wide supporting records.",
           "Academic, study-session, alert, and email activity files are filtered to the selected semester.",
           "The export is read-only and contains no authentication credentials or API keys.",
+          "Formula-like text in CSV cells is prefixed with an apostrophe for spreadsheet safety; this changes the exported text, not stored records. Import CSV columns as text and do not assume a re-saved CSV retains that protection.",
         ],
       },
       null,

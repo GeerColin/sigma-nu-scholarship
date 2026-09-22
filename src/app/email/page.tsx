@@ -118,8 +118,11 @@ export default async function EmailPage({
           role="alert"
           className="mb-5 rounded-xl bg-[var(--danger-soft)] p-4 font-semibold text-[var(--danger)]"
         >
-          We couldn’t complete that email action. Nothing was sent. Confirm that
-          the batch has eligible recipients and is in the expected state.
+          {query.error === "delivery-status-unknown"
+            ? "Sending stopped because a delivery result could not be saved. Some messages may have been sent. Check provider delivery records and reconcile the batch before trying again."
+            : query.error === "delivery-incomplete"
+              ? "Some messages could not be sent. Review each message’s status before retrying failed messages."
+              : "We couldn’t complete that email action. Review the batch and delivery states before trying again."}
         </p>
       )}
 

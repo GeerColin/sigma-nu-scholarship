@@ -2,6 +2,22 @@
 
 Status legend: `[x]` complete, `[~]` in progress, `[ ]` not started, `[!]` external configuration or test identity required.
 
+## 2026-09-21 — Read-only hosted audit / local corrections
+
+This audit supersedes earlier blanket readiness claims for the findings documented in `docs/AUDIT_2026-09-21.md`. No push, deployment or hosted modification was authorized or performed.
+
+- [x] Verified project identities and the local CLI's production link before read-only metadata inspection.
+- [x] Production migrations 001–026 match a fresh local replay across inspected tables, columns, policies, constraints, indexes, functions, triggers and grants. Development remains at 018; do not assume it supports the current app.
+- [x] Prepared migrations 027–029 for direct-write/identity-link authorization, trusted access-request email, concurrency-safe course limit, grade revision integrity, stale frozen proposals and session role/timezone consistency. Applied only to isolated local audit databases.
+- [x] Added regression coverage with nonempty synthetic academic rows, real concurrent local transactions, mocked email failures, pagination, member-detail scope and CSV formula-like text.
+- [x] Local database verification: 289 pgTAP assertions in 19 files pass. Fresh replay baseline matches production metadata; 029 was then applied and verified on the replay database.
+- [x] Manual anonymous browser verification: login rendered and nine protected local routes redirected to login. Temporary preview/tab closed; no hosted Google login or academic data test performed.
+- [x] Final verification: 173 unit tests in 31 files, 289 pgTAP assertions in 19 files, ESLint, strict TypeScript, formatting, production build and `git diff --check` pass. Application-schema SQL lint reports only two intentionally unused compatibility parameters; unrestricted lint also flags pgTAP extension internals, not application functions.
+- [!] Migrations 027–029 remain unapplied to hosted development and production; security corrections are not live.
+- [!] Remaining: cross-week/letter alerts, null-GPA/proposed-calculation provenance, RPC date policy, durable email reconciliation/event ordering, non-analytics pagination, export schema completeness, Google-only provider policy, and full synthetic authenticated browser coverage.
+
+See `docs/AUDIT_2026-09-21.md` for severity, reproductions, coverage limits and workflow recommendations. Earlier feature checkmarks below describe implementation history, not proof that these newly documented cases pass.
+
 ## Phase 0 — Repository and foundation
 
 - [x] Inspect repository and establish application root

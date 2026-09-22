@@ -196,6 +196,14 @@ async function deliverEmailBatch(batchId: string, retry: boolean) {
   if (settingsError || !from)
     redirect(`${emailPath}?error=batch-not-sendable` as never);
 
+  // Fail before transitioning the batch if transport configuration is missing.
+  let transport;
+  try {
+    transport = createEmailTransport();
+  } catch {
+    redirect(`${emailPath}?error=batch-not-sendable` as never);
+  }
+
   const { error: beginError } = await supabase.rpc(
     retry ? "begin_email_batch_retry" : "begin_email_batch_send",
     { target_batch_id: batchId },
@@ -211,8 +219,10 @@ async function deliverEmailBatch(batchId: string, retry: boolean) {
   if (messageError || !messages?.length)
     redirect(`${emailPath}?error=batch-not-sendable` as never);
 
-  const transport = createEmailTransport();
+  let hadDeliveryFailure = false;
   for (const message of messages) {
+    let providerId = "";
+    let succeeded = false;
     try {
       const result = await transport.send({
         from,
@@ -222,19 +232,33 @@ async function deliverEmailBatch(batchId: string, retry: boolean) {
         text: message.final_body,
         idempotencyKey: message.idempotency_key,
       });
-      await supabase.rpc("record_email_send_result_v2", {
-        target_message_id: message.id,
-        provider_id: result.providerMessageId,
-        succeeded: true,
-        failure_code: "",
-      });
+      providerId = result.providerMessageId;
+      succeeded = true;
     } catch {
-      await supabase.rpc("record_email_send_result_v2", {
-        target_message_id: message.id,
-        provider_id: "",
-        succeeded: false,
-        failure_code: "transport_error",
-      });
+      hadDeliveryFailure = true;
     }
+    // A provider acceptance and its database acknowledgement are distinct.
+    // Never turn a persistence failure into a claim that delivery failed (or
+    // succeeded), and never automatically resend an uncertain delivery.
+    let recordingFailed = false;
+    try {
+      const { error } = await supabase.rpc("record_email_send_result_v2", {
+        target_message_id: message.id,
+        provider_id: providerId,
+        succeeded,
+        failure_code: succeeded ? "" : "transport_error",
+      });
+      recordingFailed = Boolean(error);
+    } catch {
+      recordingFailed = true;
+    }
+    if (recordingFailed) {
+      revalidatePath(emailPath);
+      redirect(`${emailPath}?error=delivery-status-unknown` as never);
+    }
+  }
+  if (hadDeliveryFailure) {
+    revalidatePath(emailPath);
+    redirect(`${emailPath}?error=delivery-incomplete` as never);
   }
 }

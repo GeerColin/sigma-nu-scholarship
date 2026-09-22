@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(15);
+select plan(21);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values ('20000000-0000-4000-8000-000000000001', 'academic-member@example.test', '{}', '{"full_name":"Academic Member"}', 'authenticated', 'authenticated');
@@ -66,5 +66,26 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
 select is((select e.credit_hours_snapshot from public.grade_entries e join public.grade_submissions s on s.id = e.submission_id where s.revision_number = 1 and e.course_id = '20000000-0000-4000-8000-000000000031'), 3.00::numeric, 'historical credit-hour snapshot survives later course correction');
 
+select throws_ok($$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', null::jsonb)$$,
+  'P0001', 'Entries must be an array', 'SQL NULL cannot create an empty grade revision');
+set local role postgres;
+update public.academic_weeks set deadline_at = now() - interval '1 day' where id = '20000000-0000-4000-8000-000000000021';
+set local role authenticated;
+select lives_ok($$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[{"courseId":"20000000-0000-4000-8000-000000000031","value":80},{"courseId":"20000000-0000-4000-8000-000000000032","value":"C"},{"courseId":"20000000-0000-4000-8000-000000000033","value":"Pass"}]')$$,
+  'revision is accepted after a deadline adjustment');
+select is((select original_timing::text from public.grade_submissions where is_current), 'on_time',
+  'original timing remains immutable after a deadline adjustment');
+select is((select revision_timing::text from public.grade_submissions where is_current), 'late',
+  'revision timing uses the effective deadline');
+set local role postgres;
+update public.courses set grading_type = 'percentage' where id = '20000000-0000-4000-8000-000000000032';
+set local role authenticated;
+select lives_ok($$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[{"courseId":"20000000-0000-4000-8000-000000000031","value":80},{"courseId":"20000000-0000-4000-8000-000000000032","value":80},{"courseId":"20000000-0000-4000-8000-000000000033","value":"Pass"}]')$$,
+  'changing letter grading to percentage does not cast historical letters to numbers');
+set local role postgres;
+update public.members set status = 'inactive' where id = '20000000-0000-4000-8000-000000000011';
+set local role authenticated;
+select throws_ok($$select public.submit_weekly_checkin('20000000-0000-4000-8000-000000000021', '[]')$$,
+  'P0001', 'Only active members may submit grades', 'inactive member cannot submit via RPC');
 select * from finish();
 rollback;

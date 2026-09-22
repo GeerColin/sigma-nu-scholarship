@@ -34,8 +34,11 @@ select throws_ok($$select public.activate_semester((select id from public.semest
 select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Corrected Spring'), 'restore')$$, 'Chair can restore archived semester');
 select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Corrected Spring'), 'delete')$$, 'unused semester and generated weeks can be deleted');
 select is((select count(*)::integer from public.academic_weeks), 3, 'deletion preserves other semester weeks');
+-- Historical fixture setup is privileged; application mutations use RPCs.
+set local role postgres;
 insert into public.courses(chapter_id,member_id,semester_id,name,credit_hours,grading_type)
 select chapter_id, public.current_member_id(), id, 'Synthetic Protected Course', 3, 'percentage' from public.semesters where name = 'Fall Synthetic';
+set local role authenticated;
 select throws_ok($$select public.manage_semester((select id from public.semesters where name = 'Fall Synthetic'), 'delete')$$, '23503', null, 'course history blocks deletion');
 select is((select count(*)::integer from public.academic_weeks), 3, 'failed deletion rolls back week removal');
 select lives_ok($$select public.manage_semester((select id from public.semesters where name = 'Fall Synthetic'), 'archive')$$, 'semester with course history can be archived');
