@@ -47,6 +47,7 @@ export async function ChairAppShell({
         workspace: "chair",
         canProctor: true,
         canChair: true,
+        canPrivacy: true,
         role: context.roles.includes("scholarship_chair")
           ? "Scholarship Chair"
           : "Admin",

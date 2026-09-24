@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import {
+  PrivacyActionGuard,
+  PrivacySensitive,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -115,34 +119,36 @@ export default async function MembersPage({
               <option value="incomplete">Incomplete hours</option>
               <option value="alerts">Academic alert</option>
             </select>
-            <div className="grid grid-cols-2 gap-2">
-              <label>
-                <span className="sr-only">Minimum estimated GPA</span>
-                <input
-                  name="gpaMin"
-                  type="number"
-                  min="0"
-                  max="4"
-                  step="0.01"
-                  defaultValue={params.gpaMin ?? ""}
-                  placeholder="Min GPA"
-                  className="min-h-12 w-full rounded-xl border px-3"
-                />
-              </label>
-              <label>
-                <span className="sr-only">Maximum estimated GPA</span>
-                <input
-                  name="gpaMax"
-                  type="number"
-                  min="0"
-                  max="4"
-                  step="0.01"
-                  defaultValue={params.gpaMax ?? ""}
-                  placeholder="Max GPA"
-                  className="min-h-12 w-full rounded-xl border px-3"
-                />
-              </label>
-            </div>
+            <PrivacyActionGuard label="Turn off presentation privacy to filter by GPA.">
+              <div className="grid grid-cols-2 gap-2">
+                <label>
+                  <span className="sr-only">Minimum estimated GPA</span>
+                  <input
+                    name="gpaMin"
+                    type="number"
+                    min="0"
+                    max="4"
+                    step="0.01"
+                    defaultValue={params.gpaMin ?? ""}
+                    placeholder="Min GPA"
+                    className="min-h-12 w-full rounded-xl border px-3"
+                  />
+                </label>
+                <label>
+                  <span className="sr-only">Maximum estimated GPA</span>
+                  <input
+                    name="gpaMax"
+                    type="number"
+                    min="0"
+                    max="4"
+                    step="0.01"
+                    defaultValue={params.gpaMax ?? ""}
+                    placeholder="Max GPA"
+                    className="min-h-12 w-full rounded-xl border px-3"
+                  />
+                </label>
+              </div>
+            </PrivacyActionGuard>
             <button className="min-h-12 rounded-xl bg-[var(--navy)] px-5 font-semibold text-white">
               Apply
             </button>
@@ -168,22 +174,26 @@ export default async function MembersPage({
                       <p className="font-bold text-[var(--navy)]">
                         {member.name}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)] capitalize">
+                      <PrivacySensitive className="mt-1 text-sm text-[var(--muted)] capitalize">
                         {member.status} · {gpaLabel}:{" "}
                         {member.estimatedGpa?.toFixed(2) ?? "—"}
-                      </p>
+                      </PrivacySensitive>
                     </div>
-                    <Badge tone={submissionTone(member.submissionStatus)}>
-                      {submissionLabels[member.submissionStatus]}
-                    </Badge>
+                    <PrivacySensitive>
+                      <Badge tone={submissionTone(member.submissionStatus)}>
+                        {submissionLabels[member.submissionStatus]}
+                      </Badge>
+                    </PrivacySensitive>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {member.hasAcademicAlert && (
-                      <Badge tone="warning">Academic alert</Badge>
-                    )}
+                    <PrivacySensitive>
+                      {member.hasAcademicAlert && (
+                        <Badge tone="warning">Academic alert</Badge>
+                      )}
+                    </PrivacySensitive>
                     {!member.connected && <Badge>Not connected</Badge>}
                   </div>
-                  <p className="mt-3 text-sm text-[var(--muted)]">
+                  <PrivacySensitive className="mt-3 text-sm text-[var(--muted)]">
                     Study hours:{" "}
                     {member.requiredMinutes === null
                       ? "No assignment"
@@ -191,7 +201,7 @@ export default async function MembersPage({
                     {remaining !== null && remaining > 0
                       ? ` · ${formatHours(remaining)} remaining`
                       : ""}
-                  </p>
+                  </PrivacySensitive>
                 </Link>
               );
             })}
@@ -227,30 +237,38 @@ export default async function MembersPage({
                           <span className="font-bold text-[var(--navy)]">
                             {member.name}
                           </span>
-                          {member.hasAcademicAlert && (
-                            <Badge tone="warning">Academic alert</Badge>
-                          )}
+                          <PrivacySensitive>
+                            {member.hasAcademicAlert && (
+                              <Badge tone="warning">Academic alert</Badge>
+                            )}
+                          </PrivacySensitive>
                           {!member.connected && <Badge>Not connected</Badge>}
                         </div>
                       </td>
                       <td className="py-4 capitalize">{member.status}</td>
                       <td className="py-4">
-                        {member.estimatedGpa?.toFixed(2) ?? "—"}
+                        <PrivacySensitive>
+                          {member.estimatedGpa?.toFixed(2) ?? "—"}
+                        </PrivacySensitive>
                       </td>
                       <td className="py-4">
-                        <Badge tone={submissionTone(member.submissionStatus)}>
-                          {submissionLabels[member.submissionStatus]}
-                        </Badge>
+                        <PrivacySensitive>
+                          <Badge tone={submissionTone(member.submissionStatus)}>
+                            {submissionLabels[member.submissionStatus]}
+                          </Badge>
+                        </PrivacySensitive>
                       </td>
                       <td className="py-4">
-                        {member.requiredMinutes === null
-                          ? "No assignment"
-                          : `${formatHours(member.completedMinutes)} / ${formatHours(member.requiredMinutes)}`}
-                        {remaining !== null && remaining > 0 && (
-                          <span className="mt-0.5 block text-xs text-[var(--muted)]">
-                            {formatHours(remaining)} remaining
-                          </span>
-                        )}
+                        <PrivacySensitive>
+                          {member.requiredMinutes === null
+                            ? "No assignment"
+                            : `${formatHours(member.completedMinutes)} / ${formatHours(member.requiredMinutes)}`}
+                          {remaining !== null && remaining > 0 && (
+                            <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                              {formatHours(remaining)} remaining
+                            </span>
+                          )}
+                        </PrivacySensitive>
                       </td>
                       <td className="py-4 text-right">
                         <Link

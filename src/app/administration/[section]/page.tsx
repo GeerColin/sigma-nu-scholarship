@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import {
+  PrivacyActionGuard,
+  PrivacySensitive,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AccessManagement } from "@/features/administration/access-management";
@@ -125,12 +129,14 @@ export default async function AdministrationSectionPage({
                     {semester.start_date} through {semester.end_date}
                   </p>
                 </div>
-                <a
-                  href={`/api/administration/export?semesterId=${semester.id}`}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--navy)] px-4 py-2.5 font-semibold text-white hover:bg-[var(--navy-light)]"
-                >
-                  Download ZIP
-                </a>
+                <PrivacyActionGuard label="Turn off presentation privacy to download a semester export.">
+                  <a
+                    href={`/api/administration/export?semesterId=${semester.id}`}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--navy)] px-4 py-2.5 font-semibold text-white hover:bg-[var(--navy-light)]"
+                  >
+                    Download ZIP
+                  </a>
+                </PrivacyActionGuard>
               </CardContent>
             </Card>
           ))}
@@ -160,24 +166,26 @@ export default async function AdministrationSectionPage({
                 <article key={row.id} className="p-5">
                   <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                     <div>
-                      <p className="font-bold text-[var(--navy)]">
+                      <PrivacySensitive className="font-bold text-[var(--navy)]">
                         {row.action.replaceAll("_", " ")}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      </PrivacySensitive>
+                      <PrivacySensitive className="mt-1 text-sm text-[var(--muted)]">
                         {row.entity_type.replaceAll("_", " ")} · {row.entity_id}
-                      </p>
+                      </PrivacySensitive>
                       {row.reason && (
-                        <p className="mt-2 text-sm">{row.reason}</p>
+                        <p className="mt-2 text-sm">
+                          <PrivacySensitive>{row.reason}</PrivacySensitive>
+                        </p>
                       )}
                     </div>
                     <div className="sm:text-right">
                       <Badge>{actor?.display_name || "System"}</Badge>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
+                      <PrivacySensitive className="mt-1 text-xs text-[var(--muted)]">
                         {new Intl.DateTimeFormat(undefined, {
                           dateStyle: "medium",
                           timeStyle: "short",
                         }).format(new Date(row.created_at))}
-                      </p>
+                      </PrivacySensitive>
                     </div>
                   </div>
                 </article>

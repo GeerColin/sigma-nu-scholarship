@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PresentationPrivacyProvider } from "@/components/presentation-privacy";
+import { getPresentationPrivacyCookie } from "@/lib/presentation-privacy";
 
 export const metadata: Metadata = {
   title: "Sigma Nu Scholarship",
@@ -14,12 +16,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const initialPrivacy = await getPresentationPrivacyCookie();
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <PresentationPrivacyProvider initialEnabled={initialPrivacy}>
+          {children}
+        </PresentationPrivacyProvider>
+      </body>
     </html>
   );
 }

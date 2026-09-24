@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
+import {
+  PresentationPrivacyControls,
+  PrivacySensitiveBlock,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getActiveAcademicPeriod } from "@/lib/academic/calendar";
@@ -70,184 +74,194 @@ export default async function MemberSectionPage({
             </p>
           </div>
         </div>
-        <Link
-          href="/member"
-          className="font-semibold text-[var(--navy)] hover:underline"
-        >
-          Home
-        </Link>
+        <div className="flex items-center gap-3">
+          <PresentationPrivacyControls
+            canToggle={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
+          <Link
+            href="/member"
+            className="font-semibold text-[var(--navy)] hover:underline"
+          >
+            Home
+          </Link>
+        </div>
       </header>
 
-      {section === "study-hours" ? (
-        <>
-          <h1 className="text-4xl font-bold text-[var(--navy)]">
-            My study hours
-          </h1>
-          <p className="mt-2 text-[var(--muted)]">
-            Your current requirement and proctor-recorded sessions.
-          </p>
-          <Card className="mt-7">
-            <CardContent>
-              {assignments ? (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--muted)]">
-                      Required
-                    </p>
-                    <p className="mt-1 text-3xl font-bold text-[var(--navy)]">
-                      {assignments.final_hours} hr
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--muted)]">
-                      Completed
-                    </p>
-                    <p className="mt-1 text-3xl font-bold text-[var(--navy)]">
-                      {completedMinutes / 60} hr
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--muted)]">
-                      Remaining
-                    </p>
-                    <p className="mt-1 text-3xl font-bold text-[var(--navy)]">
-                      {Math.max(
-                        Number(assignments.final_hours) - completedMinutes / 60,
-                        0,
-                      )}{" "}
-                      hr
-                    </p>
-                  </div>
-                  {assignments.override_hours !== null && (
-                    <p className="text-sm text-[var(--muted)] sm:col-span-3">
-                      Your requirement was overridden:{" "}
-                      {assignments.override_reason}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[var(--muted)]">
-                  No study-hour assignment yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-          <Card className="mt-5">
-            <CardHeader>
-              <h2 className="text-xl font-bold text-[var(--navy)]">
-                Current-week sessions
-              </h2>
-            </CardHeader>
-            <div className="divide-y">
-              {(sessions ?? []).map((session) => (
-                <article
-                  key={session.id}
-                  className="flex items-center justify-between gap-4 p-5"
-                >
-                  <div>
-                    <p className="font-bold text-[var(--navy)]">
-                      {session.session_date}
-                    </p>
-                    {session.notes && (
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        {session.notes}
+      <PrivacySensitiveBlock>
+        {section === "study-hours" ? (
+          <>
+            <h1 className="text-4xl font-bold text-[var(--navy)]">
+              My study hours
+            </h1>
+            <p className="mt-2 text-[var(--muted)]">
+              Your current requirement and proctor-recorded sessions.
+            </p>
+            <Card className="mt-7">
+              <CardContent>
+                {assignments ? (
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--muted)]">
+                        Required
+                      </p>
+                      <p className="mt-1 text-3xl font-bold text-[var(--navy)]">
+                        {assignments.final_hours} hr
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--muted)]">
+                        Completed
+                      </p>
+                      <p className="mt-1 text-3xl font-bold text-[var(--navy)]">
+                        {completedMinutes / 60} hr
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--muted)]">
+                        Remaining
+                      </p>
+                      <p className="mt-1 text-3xl font-bold text-[var(--navy)]">
+                        {Math.max(
+                          Number(assignments.final_hours) -
+                            completedMinutes / 60,
+                          0,
+                        )}{" "}
+                        hr
+                      </p>
+                    </div>
+                    {assignments.override_hours !== null && (
+                      <p className="text-sm text-[var(--muted)] sm:col-span-3">
+                        Your requirement was overridden:{" "}
+                        {assignments.override_reason}
                       </p>
                     )}
                   </div>
-                  <p className="font-bold text-[var(--navy)]">
-                    {session.duration_minutes / 60} hr
+                ) : (
+                  <p className="text-[var(--muted)]">
+                    No study-hour assignment yet.
                   </p>
-                </article>
-              ))}
-              {!sessions?.length && (
-                <p className="p-8 text-center text-[var(--muted)]">
-                  No study sessions for this week.
-                </p>
-              )}
-            </div>
-          </Card>
-        </>
-      ) : (
-        <>
-          <h1 className="text-4xl font-bold text-[var(--navy)]">
-            Submission history
-          </h1>
-          <p className="mt-2 text-[var(--muted)]">
-            Estimated semester GPA values from your current weekly revisions.
-          </p>
-          <Card className="mt-7">
-            <div className="divide-y">
-              {(submissions ?? []).map((submission) => {
-                const week = submission.academic_weeks as unknown as {
-                  label: string;
-                  sequence_number: number;
-                } | null;
-                return (
+                )}
+              </CardContent>
+            </Card>
+            <Card className="mt-5">
+              <CardHeader>
+                <h2 className="text-xl font-bold text-[var(--navy)]">
+                  Current-week sessions
+                </h2>
+              </CardHeader>
+              <div className="divide-y">
+                {(sessions ?? []).map((session) => (
                   <article
-                    key={submission.id}
-                    className="flex flex-col justify-between gap-3 p-5 sm:flex-row sm:items-center"
+                    key={session.id}
+                    className="flex items-center justify-between gap-4 p-5"
                   >
                     <div>
                       <p className="font-bold text-[var(--navy)]">
-                        {week?.label ?? "Academic week"}
+                        {session.session_date}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        {new Intl.DateTimeFormat(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(
-                          new Date(submission.original_submitted_at),
-                        )}{" "}
-                        · Revision {submission.revision_number}
-                      </p>
-                      {submission.submission_comment && (
-                        <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
-                          <span className="font-semibold text-[var(--navy)]">
-                            Your note:
-                          </span>{" "}
-                          {submission.submission_comment}
+                      {session.notes && (
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {session.notes}
                         </p>
                       )}
                     </div>
-                    <div className="text-right">
-                      <Badge
-                        tone={
-                          submission.original_timing === "on_time"
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {submissionStatusLabel(
-                          submission.original_timing,
-                          submission.revision_timing,
-                          submission.revision_number,
-                        )}
-                      </Badge>
-                      <p className="mt-1 font-bold text-[var(--navy)]">
-                        Estimated {period?.semester.name ?? "semester"} GPA:{" "}
-                        {submission.estimated_gpa_snapshot === null
-                          ? "—"
-                          : Number(submission.estimated_gpa_snapshot).toFixed(
-                              2,
-                            )}
-                      </p>
-                    </div>
+                    <p className="font-bold text-[var(--navy)]">
+                      {session.duration_minutes / 60} hr
+                    </p>
                   </article>
-                );
-              })}
-              {!submissions?.length && (
-                <p className="p-8 text-center text-[var(--muted)]">
-                  No weekly submissions for this semester.
-                </p>
-              )}
-            </div>
-          </Card>
-          <p className="mt-4 text-sm text-[var(--muted)]">
-            Estimated GPA is based on member-reported grades and configured
-            course weights. It may differ from your official university GPA.
-          </p>
-        </>
-      )}
+                ))}
+                {!sessions?.length && (
+                  <p className="p-8 text-center text-[var(--muted)]">
+                    No study sessions for this week.
+                  </p>
+                )}
+              </div>
+            </Card>
+          </>
+        ) : (
+          <>
+            <h1 className="text-4xl font-bold text-[var(--navy)]">
+              Submission history
+            </h1>
+            <p className="mt-2 text-[var(--muted)]">
+              Estimated semester GPA values from your current weekly revisions.
+            </p>
+            <Card className="mt-7">
+              <div className="divide-y">
+                {(submissions ?? []).map((submission) => {
+                  const week = submission.academic_weeks as unknown as {
+                    label: string;
+                    sequence_number: number;
+                  } | null;
+                  return (
+                    <article
+                      key={submission.id}
+                      className="flex flex-col justify-between gap-3 p-5 sm:flex-row sm:items-center"
+                    >
+                      <div>
+                        <p className="font-bold text-[var(--navy)]">
+                          {week?.label ?? "Academic week"}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {new Intl.DateTimeFormat(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }).format(
+                            new Date(submission.original_submitted_at),
+                          )}{" "}
+                          · Revision {submission.revision_number}
+                        </p>
+                        {submission.submission_comment && (
+                          <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
+                            <span className="font-semibold text-[var(--navy)]">
+                              Your note:
+                            </span>{" "}
+                            {submission.submission_comment}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <Badge
+                          tone={
+                            submission.original_timing === "on_time"
+                              ? "success"
+                              : "warning"
+                          }
+                        >
+                          {submissionStatusLabel(
+                            submission.original_timing,
+                            submission.revision_timing,
+                            submission.revision_number,
+                          )}
+                        </Badge>
+                        <p className="mt-1 font-bold text-[var(--navy)]">
+                          Estimated {period?.semester.name ?? "semester"} GPA:{" "}
+                          {submission.estimated_gpa_snapshot === null
+                            ? "—"
+                            : Number(submission.estimated_gpa_snapshot).toFixed(
+                                2,
+                              )}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+                {!submissions?.length && (
+                  <p className="p-8 text-center text-[var(--muted)]">
+                    No weekly submissions for this semester.
+                  </p>
+                )}
+              </div>
+            </Card>
+            <p className="mt-4 text-sm text-[var(--muted)]">
+              Estimated GPA is based on member-reported grades and configured
+              course weights. It may differ from your official university GPA.
+            </p>
+          </>
+        )}
+      </PrivacySensitiveBlock>
     </main>
   );
 }

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import {
+  PrivacyActionGuard,
+  PrivacySensitive,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -234,7 +238,10 @@ export default async function StudyHoursPage({
                               </Link>
                               {member.overrideReason && (
                                 <p className="mt-1 max-w-xs text-xs text-[var(--muted)]">
-                                  Override: {member.overrideReason}
+                                  Override:{" "}
+                                  <PrivacySensitive>
+                                    {member.overrideReason}
+                                  </PrivacySensitive>
                                 </p>
                               )}
                             </td>
@@ -242,175 +249,86 @@ export default async function StudyHoursPage({
                               <span className="font-semibold xl:hidden">
                                 Required
                               </span>
-                              {member.requiredMinutes === null
-                                ? "—"
-                                : hourValue(member.requiredMinutes) + " hr"}
+                              <PrivacySensitive>
+                                {member.requiredMinutes === null
+                                  ? "—"
+                                  : hourValue(member.requiredMinutes) + " hr"}
+                              </PrivacySensitive>
                             </td>
                             <td className="flex justify-between gap-3 border-b px-4 py-3 xl:table-cell xl:border-0 xl:px-0 xl:py-4">
                               <span className="font-semibold xl:hidden">
                                 Completed
                               </span>
-                              {hourValue(member.completedMinutes)} hr
+                              <PrivacySensitive>
+                                {hourValue(member.completedMinutes)} hr
+                              </PrivacySensitive>
                             </td>
                             <td className="flex justify-between gap-3 border-b px-4 py-3 xl:table-cell xl:border-0 xl:px-0 xl:py-4">
                               <span className="font-semibold xl:hidden">
                                 Remaining
                               </span>
-                              {remaining === null
-                                ? "—"
-                                : hourValue(remaining) + " hr"}
+                              <PrivacySensitive>
+                                {remaining === null
+                                  ? "—"
+                                  : hourValue(remaining) + " hr"}
+                              </PrivacySensitive>
                             </td>
                             <td className="flex flex-wrap justify-between gap-2 border-b px-4 py-3 xl:table-cell xl:border-0 xl:px-0 xl:py-4">
                               <span className="font-semibold xl:hidden">
                                 Status
                               </span>
                               <div>
-                                <Badge
-                                  tone={
-                                    member.hoursStatus === "complete"
-                                      ? "success"
-                                      : member.hoursStatus === "in_progress"
-                                        ? "warning"
-                                        : member.hoursStatus === "not_started"
-                                          ? "danger"
-                                          : "neutral"
-                                  }
-                                >
-                                  {
+                                <PrivacySensitive>
+                                  <Badge
+                                    tone={
+                                      member.hoursStatus === "complete"
+                                        ? "success"
+                                        : member.hoursStatus === "in_progress"
+                                          ? "warning"
+                                          : member.hoursStatus === "not_started"
+                                            ? "danger"
+                                            : "neutral"
+                                    }
+                                  >
                                     {
-                                      complete: "Complete",
-                                      in_progress: "In Progress",
-                                      not_started: "Not Started",
-                                      not_assigned: "Not Assigned",
-                                    }[member.hoursStatus]
-                                  }
-                                </Badge>
-                                {member.overridden && (
-                                  <Badge tone="warning" className="mt-1 ml-1">
-                                    Overridden
+                                      {
+                                        complete: "Complete",
+                                        in_progress: "In Progress",
+                                        not_started: "Not Started",
+                                        not_assigned: "Not Assigned",
+                                      }[member.hoursStatus]
+                                    }
                                   </Badge>
-                                )}
-                                {member.assignmentState === "frozen" && (
-                                  <Badge className="mt-1 ml-1">Frozen</Badge>
-                                )}
-                                {member.assignmentState ===
-                                  "review_required" && (
-                                  <Badge tone="danger" className="mt-1 ml-1">
-                                    Review required
-                                  </Badge>
-                                )}
+                                  {member.overridden && (
+                                    <Badge tone="warning" className="mt-1 ml-1">
+                                      Overridden
+                                    </Badge>
+                                  )}
+                                  {member.assignmentState === "frozen" && (
+                                    <Badge className="mt-1 ml-1">Frozen</Badge>
+                                  )}
+                                  {member.assignmentState ===
+                                    "review_required" && (
+                                    <Badge tone="danger" className="mt-1 ml-1">
+                                      Review required
+                                    </Badge>
+                                  )}
+                                </PrivacySensitive>
                               </div>
                             </td>
                             <td className="block p-4 xl:table-cell xl:py-4 xl:pr-0 xl:pl-2">
                               {member.assignmentId ? (
-                                <details className="w-full rounded-xl border xl:min-w-64">
-                                  <summary
-                                    aria-label={`Manage study hours for ${member.name}`}
-                                    className="cursor-pointer p-3 font-semibold text-[var(--navy)]"
-                                  >
-                                    Manage
-                                  </summary>
-                                  <div className="space-y-4 border-t p-3">
-                                    <form
-                                      action={overrideStudyHourAssignment}
-                                      className="space-y-3"
+                                <PrivacyActionGuard label="Turn off presentation privacy to manage study-hour assignments.">
+                                  <details className="w-full rounded-xl border xl:min-w-64">
+                                    <summary
+                                      aria-label={`Manage study hours for ${member.name}`}
+                                      className="cursor-pointer p-3 font-semibold text-[var(--navy)]"
                                     >
-                                      <input
-                                        type="hidden"
-                                        name="assignmentId"
-                                        value={member.assignmentId}
-                                      />
-                                      <label className="block">
-                                        <span className="mb-1 block text-sm font-semibold">
-                                          New required hours
-                                        </span>
-                                        <input
-                                          name="hours"
-                                          required
-                                          type="number"
-                                          min="0"
-                                          max="24"
-                                          step="1"
-                                          defaultValue={
-                                            member.requiredMinutes === null
-                                              ? 0
-                                              : member.requiredMinutes / 60
-                                          }
-                                          className="min-h-11 w-full rounded-xl border px-3"
-                                        />
-                                      </label>
-                                      <label className="block">
-                                        <span className="mb-1 block text-sm font-semibold">
-                                          Reason
-                                        </span>
-                                        <input
-                                          name="reason"
-                                          required
-                                          minLength={2}
-                                          maxLength={500}
-                                          className="min-h-11 w-full rounded-xl border px-3"
-                                        />
-                                      </label>
-                                      <label className="flex gap-2 text-sm">
-                                        <input
-                                          type="checkbox"
-                                          name="confirmed"
-                                          required
-                                        />
-                                        <span>
-                                          I confirm this changes the member’s
-                                          required hours.
-                                        </span>
-                                      </label>
-                                      <Button type="submit" className="w-full">
-                                        Apply override
-                                      </Button>
-                                    </form>
-
-                                    {member.overridden && (
+                                      Manage
+                                    </summary>
+                                    <div className="space-y-4 border-t p-3">
                                       <form
-                                        action={removeStudyHourOverride}
-                                        className="space-y-2 border-t pt-3"
-                                      >
-                                        <input
-                                          type="hidden"
-                                          name="assignmentId"
-                                          value={member.assignmentId}
-                                        />
-                                        <input
-                                          name="reason"
-                                          required
-                                          minLength={2}
-                                          maxLength={500}
-                                          placeholder="Reason for removal"
-                                          className="min-h-11 w-full rounded-xl border px-3"
-                                        />
-                                        <label className="flex items-start gap-2 text-sm">
-                                          <input
-                                            type="checkbox"
-                                            name="confirmed"
-                                            required
-                                            className="mt-1"
-                                          />
-                                          <span>
-                                            I confirm this override should be
-                                            removed.
-                                          </span>
-                                        </label>
-                                        <Button
-                                          type="submit"
-                                          className="w-full bg-transparent text-[var(--danger)] shadow-none ring-1 ring-[var(--border)]"
-                                        >
-                                          Remove override
-                                        </Button>
-                                      </form>
-                                    )}
-
-                                    {["draft", "ready"].includes(
-                                      member.assignmentState ?? "",
-                                    ) && (
-                                      <form
-                                        action={freezeStudyHourAssignment}
+                                        action={overrideStudyHourAssignment}
                                         className="space-y-3"
                                       >
                                         <input
@@ -418,82 +336,184 @@ export default async function StudyHoursPage({
                                           name="assignmentId"
                                           value={member.assignmentId}
                                         />
-                                        <label className="flex items-start gap-2 text-sm">
+                                        <label className="block">
+                                          <span className="mb-1 block text-sm font-semibold">
+                                            New required hours
+                                          </span>
+                                          <input
+                                            name="hours"
+                                            required
+                                            type="number"
+                                            min="0"
+                                            max="24"
+                                            step="1"
+                                            defaultValue={
+                                              member.requiredMinutes === null
+                                                ? 0
+                                                : member.requiredMinutes / 60
+                                            }
+                                            className="min-h-11 w-full rounded-xl border px-3"
+                                          />
+                                        </label>
+                                        <label className="block">
+                                          <span className="mb-1 block text-sm font-semibold">
+                                            Reason
+                                          </span>
+                                          <input
+                                            name="reason"
+                                            required
+                                            minLength={2}
+                                            maxLength={500}
+                                            className="min-h-11 w-full rounded-xl border px-3"
+                                          />
+                                        </label>
+                                        <label className="flex gap-2 text-sm">
                                           <input
                                             type="checkbox"
                                             name="confirmed"
                                             required
-                                            className="mt-1"
                                           />
                                           <span>
-                                            I confirm this requirement is ready
-                                            to freeze.
+                                            I confirm this changes the member’s
+                                            required hours.
                                           </span>
                                         </label>
                                         <Button
                                           type="submit"
-                                          className="w-full bg-transparent text-[var(--navy)] shadow-none ring-1 ring-[var(--border)]"
-                                        >
-                                          Freeze assignment
-                                        </Button>
-                                      </form>
-                                    )}
-
-                                    {member.assignmentState ===
-                                      "review_required" && (
-                                      <form
-                                        action={resolveStudyHourAssignment}
-                                        className="space-y-2 border-t pt-3"
-                                      >
-                                        <input
-                                          type="hidden"
-                                          name="assignmentId"
-                                          value={member.assignmentId}
-                                        />
-                                        <div className="space-y-1 text-sm text-[var(--muted)]">
-                                          <p>
-                                            Previously assigned:{" "}
-                                            {member.requiredMinutes === null
-                                              ? "—"
-                                              : hourValue(
-                                                  member.requiredMinutes,
-                                                )}{" "}
-                                            hr
-                                          </p>
-                                          <p>
-                                            New calculation:{" "}
-                                            {member.proposedHours ?? "—"} hr
-                                          </p>
-                                        </div>
-                                        <select
-                                          name="decision"
-                                          className="min-h-11 w-full rounded-xl border bg-white px-3"
-                                        >
-                                          <option value="keep">
-                                            Keep Existing
-                                          </option>
-                                          <option value="update">
-                                            Update Assignment
-                                          </option>
-                                        </select>
-                                        <input
-                                          name="reason"
-                                          required
-                                          minLength={2}
-                                          maxLength={500}
-                                          placeholder="Decision reason"
-                                          className="min-h-11 w-full rounded-xl border px-3"
-                                        />
-                                        <Button
-                                          type="submit"
                                           className="w-full"
                                         >
-                                          Resolve review
+                                          Apply override
                                         </Button>
                                       </form>
-                                    )}
-                                  </div>
-                                </details>
+
+                                      {member.overridden && (
+                                        <form
+                                          action={removeStudyHourOverride}
+                                          className="space-y-2 border-t pt-3"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="assignmentId"
+                                            value={member.assignmentId}
+                                          />
+                                          <input
+                                            name="reason"
+                                            required
+                                            minLength={2}
+                                            maxLength={500}
+                                            placeholder="Reason for removal"
+                                            className="min-h-11 w-full rounded-xl border px-3"
+                                          />
+                                          <label className="flex items-start gap-2 text-sm">
+                                            <input
+                                              type="checkbox"
+                                              name="confirmed"
+                                              required
+                                              className="mt-1"
+                                            />
+                                            <span>
+                                              I confirm this override should be
+                                              removed.
+                                            </span>
+                                          </label>
+                                          <Button
+                                            type="submit"
+                                            className="w-full bg-transparent text-[var(--danger)] shadow-none ring-1 ring-[var(--border)]"
+                                          >
+                                            Remove override
+                                          </Button>
+                                        </form>
+                                      )}
+
+                                      {["draft", "ready"].includes(
+                                        member.assignmentState ?? "",
+                                      ) && (
+                                        <form
+                                          action={freezeStudyHourAssignment}
+                                          className="space-y-3"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="assignmentId"
+                                            value={member.assignmentId}
+                                          />
+                                          <label className="flex items-start gap-2 text-sm">
+                                            <input
+                                              type="checkbox"
+                                              name="confirmed"
+                                              required
+                                              className="mt-1"
+                                            />
+                                            <span>
+                                              I confirm this requirement is
+                                              ready to freeze.
+                                            </span>
+                                          </label>
+                                          <Button
+                                            type="submit"
+                                            className="w-full bg-transparent text-[var(--navy)] shadow-none ring-1 ring-[var(--border)]"
+                                          >
+                                            Freeze assignment
+                                          </Button>
+                                        </form>
+                                      )}
+
+                                      {member.assignmentState ===
+                                        "review_required" && (
+                                        <form
+                                          action={resolveStudyHourAssignment}
+                                          className="space-y-2 border-t pt-3"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="assignmentId"
+                                            value={member.assignmentId}
+                                          />
+                                          <div className="space-y-1 text-sm text-[var(--muted)]">
+                                            <p>
+                                              Previously assigned:{" "}
+                                              {member.requiredMinutes === null
+                                                ? "—"
+                                                : hourValue(
+                                                    member.requiredMinutes,
+                                                  )}{" "}
+                                              hr
+                                            </p>
+                                            <p>
+                                              New calculation:{" "}
+                                              {member.proposedHours ?? "—"} hr
+                                            </p>
+                                          </div>
+                                          <select
+                                            name="decision"
+                                            className="min-h-11 w-full rounded-xl border bg-white px-3"
+                                          >
+                                            <option value="keep">
+                                              Keep Existing
+                                            </option>
+                                            <option value="update">
+                                              Update Assignment
+                                            </option>
+                                          </select>
+                                          <input
+                                            name="reason"
+                                            required
+                                            minLength={2}
+                                            maxLength={500}
+                                            placeholder="Decision reason"
+                                            className="min-h-11 w-full rounded-xl border px-3"
+                                          />
+                                          <Button
+                                            type="submit"
+                                            className="w-full"
+                                          >
+                                            Resolve review
+                                          </Button>
+                                        </form>
+                                      )}
+                                    </div>
+                                  </details>
+                                </PrivacyActionGuard>
                               ) : (
                                 <span className="text-sm text-[var(--muted)]">
                                   Awaiting a calculated assignment

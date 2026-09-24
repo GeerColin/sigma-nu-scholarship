@@ -1,5 +1,9 @@
 import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import {
+  PresentationPrivacyControls,
+  PrivacyActionGuard,
+} from "@/components/presentation-privacy";
 import { SchedulePreviewCard } from "@/features/schedule/schedule-preview-card";
 import { getScheduleEntries } from "@/features/schedule/queries";
 import {
@@ -105,13 +109,20 @@ export default async function ProctorPage({
             </p>
           </div>
         </div>
-        <WorkspaceSwitcher
-          active="proctor"
-          canProctor
-          canChair={context.roles.some((role) =>
-            ["admin", "scholarship_chair"].includes(role),
-          )}
-        />
+        <div className="flex items-center gap-2">
+          <PresentationPrivacyControls
+            canToggle={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
+          <WorkspaceSwitcher
+            active="proctor"
+            canProctor
+            canChair={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
+        </div>
       </header>
       {params.status && statusMessages[params.status] && (
         <p
@@ -137,19 +148,21 @@ export default async function ProctorPage({
         Proctors see only sessions they recorded. Chair and Admin accounts may
         make audited corrections to chapter sessions.
       </p>
-      <ProctorSessionLogger
-        members={members}
-        weekId={period?.currentWeek?.id ?? null}
-        weekLabel={period?.currentWeek?.label ?? "No current week"}
-        currentWeekStartsOn={period?.currentWeek?.startsOn ?? null}
-        currentWeekEndsOn={period?.currentWeek?.endsOn ?? null}
-        defaultSessionDate={dateInTimeZone(
-          new Date(),
-          period?.semester.timezone ?? "UTC",
-        )}
-        initialSessions={sessions}
-        canCorrectAll={canCorrectAll}
-      />
+      <PrivacyActionGuard label="Turn off presentation privacy to view or record academic study sessions.">
+        <ProctorSessionLogger
+          members={members}
+          weekId={period?.currentWeek?.id ?? null}
+          weekLabel={period?.currentWeek?.label ?? "No current week"}
+          currentWeekStartsOn={period?.currentWeek?.startsOn ?? null}
+          currentWeekEndsOn={period?.currentWeek?.endsOn ?? null}
+          defaultSessionDate={dateInTimeZone(
+            new Date(),
+            period?.semester.timezone ?? "UTC",
+          )}
+          initialSessions={sessions}
+          canCorrectAll={canCorrectAll}
+        />
+      </PrivacyActionGuard>
       <div className="mt-7 grid gap-5 lg:grid-cols-2">
         <SchedulePreviewCard
           entries={scheduleEntries}

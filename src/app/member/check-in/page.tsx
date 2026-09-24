@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import {
+  PresentationPrivacyControls,
+  PrivacySensitiveBlock,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -127,12 +131,19 @@ export default async function CheckInPage({
             </p>
           </div>
         </div>
-        <Link
-          href="/member"
-          className="font-semibold text-[var(--navy)] hover:underline"
-        >
-          Home
-        </Link>
+        <div className="flex items-center gap-3">
+          <PresentationPrivacyControls
+            canToggle={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
+          <Link
+            href="/member"
+            className="font-semibold text-[var(--navy)] hover:underline"
+          >
+            Home
+          </Link>
+        </div>
       </header>
 
       {params.status && (
@@ -184,106 +195,108 @@ export default async function CheckInPage({
         </Card>
       ) : (
         <>
-          <div className="mb-7">
-            <p className="text-sm font-semibold text-[var(--muted)]">
-              Deadline:{" "}
-              {formatDeadline(
-                period.currentWeek.deadlineAt,
-                period.semester.timezone,
-              )}
-            </p>
-            <h1 className="mt-1 text-4xl font-bold text-[var(--navy)]">
-              Report this week’s grades
-            </h1>
-            <p className="mt-2 text-[var(--muted)]">
-              Values are prefilled from the current revision or previous week.
-              Change only what is different.
-            </p>
-          </div>
+          <PrivacySensitiveBlock>
+            <div className="mb-7">
+              <p className="text-sm font-semibold text-[var(--muted)]">
+                Deadline:{" "}
+                {formatDeadline(
+                  period.currentWeek.deadlineAt,
+                  period.semester.timezone,
+                )}
+              </p>
+              <h1 className="mt-1 text-4xl font-bold text-[var(--navy)]">
+                Report this week’s grades
+              </h1>
+              <p className="mt-2 text-[var(--muted)]">
+                Values are prefilled from the current revision or previous week.
+                Change only what is different.
+              </p>
+            </div>
 
-          {currentSubmission && (
-            <Card className="mb-5">
-              <CardContent className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-[var(--navy)]">
-                      Current submission
-                    </p>
-                    <Badge
-                      tone={
-                        currentSubmission.original_timing === "on_time"
-                          ? "success"
-                          : "warning"
-                      }
-                    >
-                      {submissionStatusLabel(
-                        currentSubmission.original_timing,
-                        currentSubmission.revision_timing,
-                        currentSubmission.revision_number,
+            {currentSubmission && (
+              <Card className="mb-5">
+                <CardContent className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-[var(--navy)]">
+                        Current submission
+                      </p>
+                      <Badge
+                        tone={
+                          currentSubmission.original_timing === "on_time"
+                            ? "success"
+                            : "warning"
+                        }
+                      >
+                        {submissionStatusLabel(
+                          currentSubmission.original_timing,
+                          currentSubmission.revision_timing,
+                          currentSubmission.revision_number,
+                        )}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Originally submitted{" "}
+                      {new Intl.DateTimeFormat(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(
+                        new Date(currentSubmission.original_submitted_at),
                       )}
-                    </Badge>
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    Originally submitted{" "}
-                    {new Intl.DateTimeFormat(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(
-                      new Date(currentSubmission.original_submitted_at),
-                    )}
-                  </p>
-                </div>
-                <div className="sm:text-right">
-                  <p className="text-sm font-semibold text-[var(--muted)]">
-                    Estimated {period.semester.name} GPA
-                  </p>
-                  <p className="text-3xl font-bold text-[var(--navy)]">
-                    {currentSubmission.estimated_gpa_snapshot === null
-                      ? "—"
-                      : Number(
-                          currentSubmission.estimated_gpa_snapshot,
-                        ).toFixed(2)}
-                  </p>
-                  <p className="text-xs text-[var(--muted)]">
-                    {currentSubmission.included_course_count} of{" "}
-                    {currentSubmission.active_course_count} courses included
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  <div className="sm:text-right">
+                    <p className="text-sm font-semibold text-[var(--muted)]">
+                      Estimated {period.semester.name} GPA
+                    </p>
+                    <p className="text-3xl font-bold text-[var(--navy)]">
+                      {currentSubmission.estimated_gpa_snapshot === null
+                        ? "—"
+                        : Number(
+                            currentSubmission.estimated_gpa_snapshot,
+                          ).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {currentSubmission.included_course_count} of{" "}
+                      {currentSubmission.active_course_count} courses included
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-          {courses.length ? (
-            <WeeklyCheckInForm
-              weekId={period.currentWeek.id}
-              courses={courses}
-              isRevision={Boolean(currentSubmission)}
-              initialComment={currentSubmission?.submission_comment ?? null}
-            />
-          ) : (
-            <Card>
-              <CardContent>
-                <p className="font-bold text-[var(--navy)]">
-                  No active courses
-                </p>
-                <p className="mt-2 text-[var(--muted)]">
-                  Add your courses before submitting a weekly check-in.
-                </p>
-                <Link
-                  href="/member/courses"
-                  className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
-                >
-                  Set up courses
-                </Link>
-              </CardContent>
-            </Card>
-          )}
+            {courses.length ? (
+              <WeeklyCheckInForm
+                weekId={period.currentWeek.id}
+                courses={courses}
+                isRevision={Boolean(currentSubmission)}
+                initialComment={currentSubmission?.submission_comment ?? null}
+              />
+            ) : (
+              <Card>
+                <CardContent>
+                  <p className="font-bold text-[var(--navy)]">
+                    No active courses
+                  </p>
+                  <p className="mt-2 text-[var(--muted)]">
+                    Add your courses before submitting a weekly check-in.
+                  </p>
+                  <Link
+                    href="/member/courses"
+                    className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[var(--navy)] px-4 font-semibold text-white"
+                  >
+                    Set up courses
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
-          <p className="mt-5 text-sm text-[var(--muted)]">
-            Estimated {period.semester.name} GPA is calculated from the grades
-            you report and the configured course weights. It may differ from
-            your official university GPA.
-          </p>
+            <p className="mt-5 text-sm text-[var(--muted)]">
+              Estimated {period.semester.name} GPA is calculated from the grades
+              you report and the configured course weights. It may differ from
+              your official university GPA.
+            </p>
+          </PrivacySensitiveBlock>
         </>
       )}
     </main>

@@ -163,6 +163,14 @@ Current owner decision (2026-09-14): occasional recoverable fresh-load failures 
 
 See [USABILITY_REPORT.md](USABILITY_REPORT.md) for changes, evidence, deferred checks, and pilot-readiness assessment. No database migrations, real roster import into Supabase, real academic data import, external email activation, or notification-center feature were added. The agent excluded roster-import.csv from the usability commit; the user's subsequent manual commit tracks it. It was not imported into the application database.
 
+## Presentation privacy mode — 2026-09-23
+
+- [x] Added a role-gated Presentation Privacy switch to the shared Chair/Admin, Member-workspace, and Proctor headers. The tab preference is authoritative in `sessionStorage`; a cookie is used only as a server-render hint so refreshes do not flash academic values, while each tab resolves its own `sessionStorage` state. A persistent bottom banner provides an explicit turn-off action.
+- [x] Guarded representative academic dashboards, directory values, weekly compliance values, member profiles, study-hour values/actions, analytics charts/trends, email batches, member grade/course/history surfaces, and Proctor session logging. Names and ordinary identity remain available where they are not part of the protected academic value. Placeholders expose only the accessible text “Hidden in presentation privacy mode.”
+- [x] Disabled academic actions and exports while enabled, including a server-side export-route check. No auth, RLS, Supabase key, database schema, or application records changed.
+- [x] Added `tests/unit/presentation-privacy.test.ts`; focused and full unit coverage pass (176 tests). ESLint, strict TypeScript, Prettier verification, and production build pass.
+- [!] The repository PostgreSQL/RLS suite was run without changing SQL and currently reports local fixture/authorization failures (22 failures across academic, audit-boundary, frozen-recalculation, behavior-permissions, and session-permissions files). No privacy-mode migration or policy change was introduced; these failures are not attributable to this UI-only feature based on the unchanged database diff, and should be investigated separately before a security-sensitive release.
+
 ## Hosted development verification — 2026-09-08
 
 - Repository and hosted migration history both contain `202609070001` through `202609070010`.

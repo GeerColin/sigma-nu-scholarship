@@ -1,5 +1,6 @@
 import { getCurrentUserContext } from "@/lib/auth/context";
 import { getProtectedSurfaceRedirect } from "@/lib/auth/permissions";
+import { getPresentationPrivacyCookie } from "@/lib/presentation-privacy";
 import { createClient } from "@/lib/supabase/server";
 import {
   createSemesterExportArchive,
@@ -41,6 +42,14 @@ export async function GET(request: Request) {
   const context = await getCurrentUserContext();
   if (getProtectedSurfaceRedirect(context, "chair")) {
     return Response.json({ error: "Not authorized" }, { status: 403 });
+  }
+  if (await getPresentationPrivacyCookie()) {
+    return Response.json(
+      {
+        error: "Turn off presentation privacy before exporting academic data.",
+      },
+      { status: 403 },
+    );
   }
 
   const semesterId = new URL(request.url).searchParams.get("semesterId");

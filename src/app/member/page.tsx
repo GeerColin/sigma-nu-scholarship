@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, Clock3 } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { PresentationPrivacyControls } from "@/components/presentation-privacy";
+import { PrivacySensitiveBlock } from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SchedulePreviewCard } from "@/features/schedule/schedule-preview-card";
@@ -118,6 +120,11 @@ export default async function MemberHomePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <PresentationPrivacyControls
+            canToggle={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
           <WorkspaceSwitcher
             active="member"
             canProctor={context.roles.some((role) =>
@@ -153,169 +160,173 @@ export default async function MemberHomePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="mt-7 grid gap-4 sm:grid-cols-2">
-          <Card
-            className={
-              "border-0 text-white sm:col-span-2 " +
-              (checkInOverdue ? "bg-[var(--danger)]" : "bg-[var(--navy)]")
-            }
-          >
-            <CardContent>
-              {!period.currentWeek.gradeCheckRequired ? (
-                <>
-                  <p className="text-sm font-semibold text-white/70">
-                    Weekly grade check-in
-                  </p>
-                  <p className="mt-3 text-2xl font-bold">
-                    No grade check required this week
-                  </p>
-                  <p className="mt-2 text-sm text-white/65">
-                    {period.currentWeek.sequenceNumber <
-                    (period.semester.firstGradeCheckSequence ?? 1)
-                      ? `Grade checks begin Week ${period.semester.firstGradeCheckSequence}.`
-                      : "No grade check is required for this scheduled week."}{" "}
-                    Study-hour tracking and scheduled proctor sessions remain
-                    available.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-white/70">
-                    Weekly grade check-in
-                  </p>
-                  <p className="mt-1 text-sm text-white/65">
-                    Deadline:{" "}
-                    {new Intl.DateTimeFormat(undefined, {
-                      timeZone: period.semester.timezone,
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(deadline!)}{" "}
-                    · {period.semester.timezone}
-                  </p>
-                  <div className="mt-3 flex items-center gap-2 text-2xl font-bold">
-                    {submission ? (
-                      <CheckCircle2 className="size-6 text-[var(--gold)]" />
-                    ) : (
-                      <Clock3 className="size-6 text-[var(--gold)]" />
-                    )}
-                    {submission
-                      ? submission.original_timing === "late"
-                        ? "Weekly check-in submitted late"
-                        : "Weekly check-in complete"
-                      : checkInOverdue
-                        ? "Your check-in is overdue"
-                        : "Your check-in is due"}
-                  </div>
-                  <p className="mt-2 text-sm text-white/65">
-                    {submission
-                      ? new Intl.DateTimeFormat(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(submission.original_submitted_at)) +
-                        " · " +
-                        submissionStatusLabel(
-                          submission.original_timing,
-                          submission.revision_timing,
-                          submission.revision_number,
-                        )
-                      : checkInOverdue
-                        ? "Submit now. It will be recorded as late."
-                        : "Report your current standing before the deadline."}
-                  </p>
-                  <Link
-                    href="/member/check-in"
-                    className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-white px-5 font-bold text-[var(--navy)] sm:w-auto"
-                  >
-                    {submission
-                      ? "Review or revise grades"
-                      : "Submit weekly grades"}
-                    <ArrowRight className="ml-2 size-4" />
-                  </Link>
-                </>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                Study Hours This Week
-              </p>
-              {requiredMinutes === null ? (
-                <p className="mt-3 text-[var(--muted)]">
-                  No study-hour assignment yet.
+        <PrivacySensitiveBlock>
+          <div className="mt-7 grid gap-4 sm:grid-cols-2">
+            <Card
+              className={
+                "border-0 text-white sm:col-span-2 " +
+                (checkInOverdue ? "bg-[var(--danger)]" : "bg-[var(--navy)]")
+              }
+            >
+              <CardContent>
+                {!period.currentWeek.gradeCheckRequired ? (
+                  <>
+                    <p className="text-sm font-semibold text-white/70">
+                      Weekly grade check-in
+                    </p>
+                    <p className="mt-3 text-2xl font-bold">
+                      No grade check required this week
+                    </p>
+                    <p className="mt-2 text-sm text-white/65">
+                      {period.currentWeek.sequenceNumber <
+                      (period.semester.firstGradeCheckSequence ?? 1)
+                        ? `Grade checks begin Week ${period.semester.firstGradeCheckSequence}.`
+                        : "No grade check is required for this scheduled week."}{" "}
+                      Study-hour tracking and scheduled proctor sessions remain
+                      available.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-white/70">
+                      Weekly grade check-in
+                    </p>
+                    <p className="mt-1 text-sm text-white/65">
+                      Deadline:{" "}
+                      {new Intl.DateTimeFormat(undefined, {
+                        timeZone: period.semester.timezone,
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(deadline!)}{" "}
+                      · {period.semester.timezone}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2 text-2xl font-bold">
+                      {submission ? (
+                        <CheckCircle2 className="size-6 text-[var(--gold)]" />
+                      ) : (
+                        <Clock3 className="size-6 text-[var(--gold)]" />
+                      )}
+                      {submission
+                        ? submission.original_timing === "late"
+                          ? "Weekly check-in submitted late"
+                          : "Weekly check-in complete"
+                        : checkInOverdue
+                          ? "Your check-in is overdue"
+                          : "Your check-in is due"}
+                    </div>
+                    <p className="mt-2 text-sm text-white/65">
+                      {submission
+                        ? new Intl.DateTimeFormat(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }).format(
+                            new Date(submission.original_submitted_at),
+                          ) +
+                          " · " +
+                          submissionStatusLabel(
+                            submission.original_timing,
+                            submission.revision_timing,
+                            submission.revision_number,
+                          )
+                        : checkInOverdue
+                          ? "Submit now. It will be recorded as late."
+                          : "Report your current standing before the deadline."}
+                    </p>
+                    <Link
+                      href="/member/check-in"
+                      className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-white px-5 font-bold text-[var(--navy)] sm:w-auto"
+                    >
+                      {submission
+                        ? "Review or revise grades"
+                        : "Submit weekly grades"}
+                      <ArrowRight className="ml-2 size-4" />
+                    </Link>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <p className="text-sm font-semibold text-[var(--muted)]">
+                  Study Hours This Week
                 </p>
-              ) : (
-                <div className="mt-3">
-                  <p className="text-xl font-bold text-[var(--navy)]">
-                    {remainingMinutes === 0
-                      ? "Requirement complete"
-                      : `${hours(remainingMinutes!)} hours remaining`}
+                {requiredMinutes === null ? (
+                  <p className="mt-3 text-[var(--muted)]">
+                    No study-hour assignment yet.
                   </p>
-                  <div
-                    className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
-                    role="progressbar"
-                    aria-label="Study-hour completion"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={studyProgress}
-                  >
+                ) : (
+                  <div className="mt-3">
+                    <p className="text-xl font-bold text-[var(--navy)]">
+                      {remainingMinutes === 0
+                        ? "Requirement complete"
+                        : `${hours(remainingMinutes!)} hours remaining`}
+                    </p>
                     <div
-                      className="h-full rounded-full bg-[var(--success)]"
-                      style={{ width: `${studyProgress}%` }}
-                    />
+                      className="mt-3 h-3 overflow-hidden rounded-full bg-[var(--surface-subtle)]"
+                      role="progressbar"
+                      aria-label="Study-hour completion"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={studyProgress}
+                    >
+                      <div
+                        className="h-full rounded-full bg-[var(--success)]"
+                        style={{ width: `${studyProgress}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      {hours(completedMinutes)} of {hours(requiredMinutes)}{" "}
+                      hours completed
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm text-[var(--muted)]">
-                    {hours(completedMinutes)} of {hours(requiredMinutes)} hours
-                    completed
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                Estimated {period.semester.name} GPA
-              </p>
-              <p className="mt-2 text-4xl font-bold text-[var(--navy)]">
-                {submission?.estimated_gpa_snapshot === null ||
-                submission?.estimated_gpa_snapshot === undefined
-                  ? "—"
-                  : Number(submission.estimated_gpa_snapshot).toFixed(2)}
-              </p>
-              <p className="mt-2 text-sm text-[var(--muted)]">
-                {submission
-                  ? "Based on " +
-                    submission.included_course_count +
-                    " of " +
-                    submission.active_course_count +
-                    " active courses. "
-                  : "No submission for this week. "}
-                This estimate may differ from your official university GPA.
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <p className="text-sm font-semibold text-[var(--muted)]">
-                Current deadline
-              </p>
-              <p className="mt-2 text-2xl font-bold text-[var(--navy)]">
-                {new Intl.DateTimeFormat(undefined, {
-                  timeZone: period.semester.timezone,
-                  dateStyle: "medium",
-                }).format(new Date(period.currentWeek.deadlineAt))}
-              </p>
-              <p className="mt-1 text-[var(--muted)]">
-                {new Intl.DateTimeFormat(undefined, {
-                  timeZone: period.semester.timezone,
-                  timeStyle: "short",
-                }).format(new Date(period.currentWeek.deadlineAt))}{" "}
-                · {period.semester.timezone}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <p className="text-sm font-semibold text-[var(--muted)]">
+                  Estimated {period.semester.name} GPA
+                </p>
+                <p className="mt-2 text-4xl font-bold text-[var(--navy)]">
+                  {submission?.estimated_gpa_snapshot === null ||
+                  submission?.estimated_gpa_snapshot === undefined
+                    ? "—"
+                    : Number(submission.estimated_gpa_snapshot).toFixed(2)}
+                </p>
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  {submission
+                    ? "Based on " +
+                      submission.included_course_count +
+                      " of " +
+                      submission.active_course_count +
+                      " active courses. "
+                    : "No submission for this week. "}
+                  This estimate may differ from your official university GPA.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <p className="text-sm font-semibold text-[var(--muted)]">
+                  Current deadline
+                </p>
+                <p className="mt-2 text-2xl font-bold text-[var(--navy)]">
+                  {new Intl.DateTimeFormat(undefined, {
+                    timeZone: period.semester.timezone,
+                    dateStyle: "medium",
+                  }).format(new Date(period.currentWeek.deadlineAt))}
+                </p>
+                <p className="mt-1 text-[var(--muted)]">
+                  {new Intl.DateTimeFormat(undefined, {
+                    timeZone: period.semester.timezone,
+                    timeStyle: "short",
+                  }).format(new Date(period.currentWeek.deadlineAt))}{" "}
+                  · {period.semester.timezone}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </PrivacySensitiveBlock>
       )}
 
       <div className="mt-7">

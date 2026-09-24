@@ -1,5 +1,6 @@
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import { PrivacySensitiveBlock } from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -126,286 +127,294 @@ export default async function EmailPage({
         </p>
       )}
 
-      <div className="mb-5 grid gap-4 lg:grid-cols-3">
-        {(
-          [
+      <PrivacySensitiveBlock>
+        <div className="mb-5 grid gap-4 lg:grid-cols-3">
+          {(
             [
-              "missing_grade_reminder",
-              "Missing-grade reminders",
-              missingMembers.length,
-              "member currently missing a check-in",
-              "members currently missing a check-in",
-            ],
-            [
-              "study_hour_assignment",
-              "Study-hour assignments",
-              assignmentMembers.length,
-              "member with a calculated assignment",
-              "members with a calculated assignment",
-            ],
-            [
-              "academic_alert",
-              "Chair academic alerts",
-              openAlerts ?? 0,
-              "open alert for the current week",
-              "open alerts for the current week",
-            ],
-          ] as const
-        ).map(([batchType, title, count, singularDetail, pluralDetail]) => (
-          <Card key={batchType}>
-            <CardContent>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-bold text-[var(--navy)]">{title}</h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {count} {count === 1 ? singularDetail : pluralDetail}
-                  </p>
-                </div>
-                <Badge tone={count ? "warning" : "neutral"}>{count}</Badge>
-              </div>
-              {batchType === "missing_grade_reminder" && !gradeCheckRequired ? (
-                <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm text-[var(--muted)]">
-                  No grade check is required this week, so missing-grade
-                  reminders are not eligible.
-                </p>
-              ) : period?.currentWeek ? (
-                <form action={prepareEmailBatch} className="mt-4">
-                  <input
-                    type="hidden"
-                    name="weekId"
-                    value={period.currentWeek.id}
-                  />
-                  <input type="hidden" name="batchType" value={batchType} />
-                  <Button type="submit" disabled={!count} className="w-full">
-                    Prepare draft batch
-                  </Button>
-                </form>
-              ) : null}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <h2 className="text-xl font-bold text-[var(--navy)]">
-            Stored email batches
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            All recipient content and delivery states below come from Supabase.
-          </p>
-        </CardHeader>
-        <div className="divide-y">
-          {(batches ?? []).map((batch) => {
-            const rows = rowsForBatch(batch.id);
-            const savedTemplate = (activeTemplates ?? []).find(
-              (item) => item.template_type === batch.batch_type,
-            );
-            const template = savedTemplate
-              ? {
-                  subject: savedTemplate.subject_template,
-                  body: savedTemplate.body_template,
-                }
-              : (emailTemplateDefaults[batch.batch_type] ??
-                emailTemplateDefaults.academic_alert!);
-            const selected = rows.filter((message) => message.selected).length;
-            const sent = rows.filter((message) =>
-              ["sent", "delivered"].includes(message.state),
-            ).length;
-            const failed = rows.filter((message) =>
-              ["failed", "bounced"].includes(message.state),
-            ).length;
-            return (
-              <article
-                key={batch.id}
-                className={
-                  "p-5 " +
-                  (query.batch === batch.id ? "bg-[var(--surface-subtle)]" : "")
-                }
-              >
-                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              [
+                "missing_grade_reminder",
+                "Missing-grade reminders",
+                missingMembers.length,
+                "member currently missing a check-in",
+                "members currently missing a check-in",
+              ],
+              [
+                "study_hour_assignment",
+                "Study-hour assignments",
+                assignmentMembers.length,
+                "member with a calculated assignment",
+                "members with a calculated assignment",
+              ],
+              [
+                "academic_alert",
+                "Chair academic alerts",
+                openAlerts ?? 0,
+                "open alert for the current week",
+                "open alerts for the current week",
+              ],
+            ] as const
+          ).map(([batchType, title, count, singularDetail, pluralDetail]) => (
+            <Card key={batchType}>
+              <CardContent>
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-bold text-[var(--navy)]">
-                      {batchLabels[batch.batch_type] ??
-                        batch.batch_type.replaceAll("_", " ")}
-                    </p>
+                    <h2 className="font-bold text-[var(--navy)]">{title}</h2>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      {selected} selected of {rows.length} · {sent} sent ·{" "}
-                      {failed} failed
+                      {count} {count === 1 ? singularDetail : pluralDetail}
                     </p>
                   </div>
-                  <Badge
-                    tone={
-                      batch.state === "completed"
-                        ? "success"
-                        : batch.state === "partial_failure"
-                          ? "danger"
-                          : batch.state === "sending"
-                            ? "warning"
-                            : "neutral"
-                    }
-                  >
-                    {batch.state.replaceAll("_", " ")}
-                  </Badge>
+                  <Badge tone={count ? "warning" : "neutral"}>{count}</Badge>
                 </div>
-
-                {batch.state === "draft" && (
-                  <form
-                    action={editEmailBatch}
-                    className="mt-5 grid gap-3 rounded-xl border p-4"
-                  >
-                    <input type="hidden" name="batchId" value={batch.id} />
-                    <p className="font-semibold text-[var(--navy)]">
-                      Edit entire batch
-                    </p>
-                    <label>
-                      <span className="mb-1 block text-sm font-semibold">
-                        Subject template
-                      </span>
-                      <input
-                        name="subject"
-                        required
-                        maxLength={200}
-                        defaultValue={template.subject}
-                        className="min-h-11 w-full rounded-xl border px-3"
-                      />
-                    </label>
-                    <label>
-                      <span className="mb-1 block text-sm font-semibold">
-                        Body template
-                      </span>
-                      <textarea
-                        name="body"
-                        required
-                        maxLength={20000}
-                        rows={5}
-                        defaultValue={template.body}
-                        className="w-full rounded-xl border p-3"
-                      />
-                    </label>
-                    <p className="text-xs text-[var(--muted)]">
-                      Supported variables include memberName, semesterName,
-                      weekLabel, deadline, requiredHours, completedHours, and
-                      remainingHours when available for this batch type.
-                    </p>
-                    <Button type="submit" className="w-fit">
-                      Apply to every message
+                {batchType === "missing_grade_reminder" &&
+                !gradeCheckRequired ? (
+                  <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm text-[var(--muted)]">
+                    No grade check is required this week, so missing-grade
+                    reminders are not eligible.
+                  </p>
+                ) : period?.currentWeek ? (
+                  <form action={prepareEmailBatch} className="mt-4">
+                    <input
+                      type="hidden"
+                      name="weekId"
+                      value={period.currentWeek.id}
+                    />
+                    <input type="hidden" name="batchType" value={batchType} />
+                    <Button type="submit" disabled={!count} className="w-full">
+                      Prepare draft batch
                     </Button>
                   </form>
-                )}
-
-                <details className="mt-4 rounded-xl border">
-                  <summary className="cursor-pointer p-4 font-semibold text-[var(--navy)]">
-                    Preview and edit {rows.length} recipient
-                    {rows.length === 1 ? "" : "s"}
-                  </summary>
-                  <div className="divide-y border-t">
-                    {rows.map((message) => (
-                      <form
-                        key={message.id}
-                        action={editEmailMessage}
-                        className="space-y-3 p-4"
-                      >
-                        <input
-                          type="hidden"
-                          name="messageId"
-                          value={message.id}
-                        />
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-[var(--navy)]">
-                              {message.recipient_name || "Recipient"}
-                            </p>
-                            <p className="text-sm text-[var(--muted)]">
-                              {message.recipient_email}
-                            </p>
-                          </div>
-                          <Badge>{message.state}</Badge>
-                        </div>
-                        {(message.send_attempt_count > 0 ||
-                          message.last_send_error) && (
-                          <p className="text-xs text-[var(--muted)]">
-                            {message.send_attempt_count} send attempt
-                            {message.send_attempt_count === 1 ? "" : "s"}
-                            {message.last_send_error
-                              ? ` · Last result: ${message.last_send_error.replaceAll("_", " ")}`
-                              : ""}
-                          </p>
-                        )}
-                        <label className="flex items-center gap-2 text-sm font-semibold">
-                          <input
-                            type="checkbox"
-                            name="selected"
-                            defaultChecked={message.selected}
-                            disabled={batch.state !== "draft"}
-                          />
-                          Include in this batch
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-sm font-semibold">
-                            Final subject
-                          </span>
-                          <input
-                            name="subject"
-                            required
-                            maxLength={200}
-                            defaultValue={message.final_subject}
-                            readOnly={batch.state !== "draft"}
-                            className="min-h-11 w-full rounded-xl border px-3 read-only:bg-[var(--surface-subtle)]"
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-sm font-semibold">
-                            Final body
-                          </span>
-                          <textarea
-                            name="body"
-                            required
-                            maxLength={20000}
-                            rows={5}
-                            defaultValue={message.final_body}
-                            readOnly={batch.state !== "draft"}
-                            className="w-full rounded-xl border p-3 read-only:bg-[var(--surface-subtle)]"
-                          />
-                        </label>
-                        {batch.state === "draft" && (
-                          <Button type="submit">Save this recipient</Button>
-                        )}
-                      </form>
-                    ))}
-                  </div>
-                </details>
-
-                {batch.state === "draft" && (
-                  <form action={approveEmailBatch} className="mt-4">
-                    <input type="hidden" name="batchId" value={batch.id} />
-                    <Button type="submit">Approve selected messages</Button>
-                  </form>
-                )}
-                {batch.state === "approved" && (
-                  <form action={sendApprovedEmailBatch} className="mt-4">
-                    <input type="hidden" name="batchId" value={batch.id} />
-                    <Button type="submit">Send approved batch</Button>
-                  </form>
-                )}
-                {batch.state === "partial_failure" && failed > 0 && (
-                  <form action={retryFailedEmailBatch} className="mt-4">
-                    <input type="hidden" name="batchId" value={batch.id} />
-                    <Button type="submit">
-                      Retry {failed} failed messages
-                    </Button>
-                  </form>
-                )}
-              </article>
-            );
-          })}
-          {!batches?.length && (
-            <p className="p-8 text-center text-[var(--muted)]">
-              No email batches have been created.
-            </p>
-          )}
+                ) : null}
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-bold text-[var(--navy)]">
+              Stored email batches
+            </h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              All recipient content and delivery states below come from
+              Supabase.
+            </p>
+          </CardHeader>
+          <div className="divide-y">
+            {(batches ?? []).map((batch) => {
+              const rows = rowsForBatch(batch.id);
+              const savedTemplate = (activeTemplates ?? []).find(
+                (item) => item.template_type === batch.batch_type,
+              );
+              const template = savedTemplate
+                ? {
+                    subject: savedTemplate.subject_template,
+                    body: savedTemplate.body_template,
+                  }
+                : (emailTemplateDefaults[batch.batch_type] ??
+                  emailTemplateDefaults.academic_alert!);
+              const selected = rows.filter(
+                (message) => message.selected,
+              ).length;
+              const sent = rows.filter((message) =>
+                ["sent", "delivered"].includes(message.state),
+              ).length;
+              const failed = rows.filter((message) =>
+                ["failed", "bounced"].includes(message.state),
+              ).length;
+              return (
+                <article
+                  key={batch.id}
+                  className={
+                    "p-5 " +
+                    (query.batch === batch.id
+                      ? "bg-[var(--surface-subtle)]"
+                      : "")
+                  }
+                >
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <p className="font-bold text-[var(--navy)]">
+                        {batchLabels[batch.batch_type] ??
+                          batch.batch_type.replaceAll("_", " ")}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {selected} selected of {rows.length} · {sent} sent ·{" "}
+                        {failed} failed
+                      </p>
+                    </div>
+                    <Badge
+                      tone={
+                        batch.state === "completed"
+                          ? "success"
+                          : batch.state === "partial_failure"
+                            ? "danger"
+                            : batch.state === "sending"
+                              ? "warning"
+                              : "neutral"
+                      }
+                    >
+                      {batch.state.replaceAll("_", " ")}
+                    </Badge>
+                  </div>
+
+                  {batch.state === "draft" && (
+                    <form
+                      action={editEmailBatch}
+                      className="mt-5 grid gap-3 rounded-xl border p-4"
+                    >
+                      <input type="hidden" name="batchId" value={batch.id} />
+                      <p className="font-semibold text-[var(--navy)]">
+                        Edit entire batch
+                      </p>
+                      <label>
+                        <span className="mb-1 block text-sm font-semibold">
+                          Subject template
+                        </span>
+                        <input
+                          name="subject"
+                          required
+                          maxLength={200}
+                          defaultValue={template.subject}
+                          className="min-h-11 w-full rounded-xl border px-3"
+                        />
+                      </label>
+                      <label>
+                        <span className="mb-1 block text-sm font-semibold">
+                          Body template
+                        </span>
+                        <textarea
+                          name="body"
+                          required
+                          maxLength={20000}
+                          rows={5}
+                          defaultValue={template.body}
+                          className="w-full rounded-xl border p-3"
+                        />
+                      </label>
+                      <p className="text-xs text-[var(--muted)]">
+                        Supported variables include memberName, semesterName,
+                        weekLabel, deadline, requiredHours, completedHours, and
+                        remainingHours when available for this batch type.
+                      </p>
+                      <Button type="submit" className="w-fit">
+                        Apply to every message
+                      </Button>
+                    </form>
+                  )}
+
+                  <details className="mt-4 rounded-xl border">
+                    <summary className="cursor-pointer p-4 font-semibold text-[var(--navy)]">
+                      Preview and edit {rows.length} recipient
+                      {rows.length === 1 ? "" : "s"}
+                    </summary>
+                    <div className="divide-y border-t">
+                      {rows.map((message) => (
+                        <form
+                          key={message.id}
+                          action={editEmailMessage}
+                          className="space-y-3 p-4"
+                        >
+                          <input
+                            type="hidden"
+                            name="messageId"
+                            value={message.id}
+                          />
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-[var(--navy)]">
+                                {message.recipient_name || "Recipient"}
+                              </p>
+                              <p className="text-sm text-[var(--muted)]">
+                                {message.recipient_email}
+                              </p>
+                            </div>
+                            <Badge>{message.state}</Badge>
+                          </div>
+                          {(message.send_attempt_count > 0 ||
+                            message.last_send_error) && (
+                            <p className="text-xs text-[var(--muted)]">
+                              {message.send_attempt_count} send attempt
+                              {message.send_attempt_count === 1 ? "" : "s"}
+                              {message.last_send_error
+                                ? ` · Last result: ${message.last_send_error.replaceAll("_", " ")}`
+                                : ""}
+                            </p>
+                          )}
+                          <label className="flex items-center gap-2 text-sm font-semibold">
+                            <input
+                              type="checkbox"
+                              name="selected"
+                              defaultChecked={message.selected}
+                              disabled={batch.state !== "draft"}
+                            />
+                            Include in this batch
+                          </label>
+                          <label className="block">
+                            <span className="mb-1 block text-sm font-semibold">
+                              Final subject
+                            </span>
+                            <input
+                              name="subject"
+                              required
+                              maxLength={200}
+                              defaultValue={message.final_subject}
+                              readOnly={batch.state !== "draft"}
+                              className="min-h-11 w-full rounded-xl border px-3 read-only:bg-[var(--surface-subtle)]"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="mb-1 block text-sm font-semibold">
+                              Final body
+                            </span>
+                            <textarea
+                              name="body"
+                              required
+                              maxLength={20000}
+                              rows={5}
+                              defaultValue={message.final_body}
+                              readOnly={batch.state !== "draft"}
+                              className="w-full rounded-xl border p-3 read-only:bg-[var(--surface-subtle)]"
+                            />
+                          </label>
+                          {batch.state === "draft" && (
+                            <Button type="submit">Save this recipient</Button>
+                          )}
+                        </form>
+                      ))}
+                    </div>
+                  </details>
+
+                  {batch.state === "draft" && (
+                    <form action={approveEmailBatch} className="mt-4">
+                      <input type="hidden" name="batchId" value={batch.id} />
+                      <Button type="submit">Approve selected messages</Button>
+                    </form>
+                  )}
+                  {batch.state === "approved" && (
+                    <form action={sendApprovedEmailBatch} className="mt-4">
+                      <input type="hidden" name="batchId" value={batch.id} />
+                      <Button type="submit">Send approved batch</Button>
+                    </form>
+                  )}
+                  {batch.state === "partial_failure" && failed > 0 && (
+                    <form action={retryFailedEmailBatch} className="mt-4">
+                      <input type="hidden" name="batchId" value={batch.id} />
+                      <Button type="submit">
+                        Retry {failed} failed messages
+                      </Button>
+                    </form>
+                  )}
+                </article>
+              );
+            })}
+            {!batches?.length && (
+              <p className="p-8 text-center text-[var(--muted)]">
+                No email batches have been created.
+              </p>
+            )}
+          </div>
+        </Card>
+      </PrivacySensitiveBlock>
     </ChairAppShell>
   );
 }

@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import {
+  PresentationPrivacyControls,
+  PrivacyActionGuard,
+} from "@/components/presentation-privacy";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   CourseManager,
@@ -79,12 +83,19 @@ export default async function CoursesPage({
             </p>
           </div>
         </div>
-        <Link
-          href="/member"
-          className="font-semibold text-[var(--navy)] hover:underline"
-        >
-          Home
-        </Link>
+        <div className="flex items-center gap-3">
+          <PresentationPrivacyControls
+            canToggle={context.roles.some((role) =>
+              ["admin", "scholarship_chair"].includes(role),
+            )}
+          />
+          <Link
+            href="/member"
+            className="font-semibold text-[var(--navy)] hover:underline"
+          >
+            Home
+          </Link>
+        </div>
       </header>
       {params.status && (
         <p
@@ -112,7 +123,9 @@ export default async function CoursesPage({
       </div>
 
       {period ? (
-        <CourseManager initialCourses={courses} />
+        <PrivacyActionGuard label="Turn off presentation privacy to manage courses or academic grading rules.">
+          <CourseManager initialCourses={courses} />
+        </PrivacyActionGuard>
       ) : (
         <Card>
           <CardContent>

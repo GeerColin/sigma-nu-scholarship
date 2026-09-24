@@ -1,5 +1,9 @@
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import {
+  PrivacySensitive,
+  PrivacySensitiveBlock,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -404,7 +408,7 @@ export default async function AnalyticsPage() {
                 {label}
               </p>
               <p className="mt-2 text-3xl font-bold text-[var(--navy)]">
-                {value}
+                <PrivacySensitive>{value}</PrivacySensitive>
               </p>
             </CardContent>
           </Card>
@@ -424,7 +428,9 @@ export default async function AnalyticsPage() {
       <Card>
         <CardContent>
           {data.length ? (
-            <AnalyticsCharts data={data} />
+            <PrivacySensitiveBlock>
+              <AnalyticsCharts data={data} />
+            </PrivacySensitiveBlock>
           ) : (
             <p className="py-8 text-center text-[var(--muted)]">
               No semester analytics are available yet.
@@ -450,22 +456,24 @@ export default async function AnalyticsPage() {
                   <p className="font-semibold text-[var(--navy)]">
                     {trend.name}
                   </p>
-                  <p className="text-sm text-[var(--muted)]">
+                  <PrivacySensitive className="text-sm text-[var(--muted)]">
                     {trend.previous.toFixed(2)} to {trend.current.toFixed(2)}
-                  </p>
+                  </PrivacySensitive>
                 </div>
-                <Badge
-                  tone={
-                    trend.change > 0
-                      ? "success"
-                      : trend.change < 0
-                        ? "danger"
-                        : "neutral"
-                  }
-                >
-                  {trend.change > 0 ? "+" : ""}
-                  {trend.change.toFixed(2)}
-                </Badge>
+                <PrivacySensitive>
+                  <Badge
+                    tone={
+                      trend.change > 0
+                        ? "success"
+                        : trend.change < 0
+                          ? "danger"
+                          : "neutral"
+                    }
+                  >
+                    {trend.change > 0 ? "+" : ""}
+                    {trend.change.toFixed(2)}
+                  </Badge>
+                </PrivacySensitive>
               </div>
             ))}
             {!memberTrends.length && (
@@ -492,23 +500,25 @@ export default async function AnalyticsPage() {
                   <p className="font-semibold text-[var(--navy)]">
                     {trend.name}
                   </p>
-                  <p className="text-sm text-[var(--muted)]">
+                  <PrivacySensitive className="text-sm text-[var(--muted)]">
                     Current average {trend.current.toFixed(2)}%
-                  </p>
+                  </PrivacySensitive>
                 </div>
-                <Badge
-                  tone={
-                    trend.change === null
-                      ? "neutral"
-                      : trend.change >= 0
-                        ? "success"
-                        : "danger"
-                  }
-                >
-                  {trend.change === null
-                    ? "First week"
-                    : `${trend.change > 0 ? "+" : ""}${trend.change.toFixed(2)}`}
-                </Badge>
+                <PrivacySensitive>
+                  <Badge
+                    tone={
+                      trend.change === null
+                        ? "neutral"
+                        : trend.change >= 0
+                          ? "success"
+                          : "danger"
+                    }
+                  >
+                    {trend.change === null
+                      ? "First week"
+                      : `${trend.change > 0 ? "+" : ""}${trend.change.toFixed(2)}`}
+                  </Badge>
+                </PrivacySensitive>
               </div>
             ))}
             {!courseTrends.length && (

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ChairAppShell } from "@/components/chair-app-shell";
+import { PrivacySensitive } from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScheduleNotificationPanel } from "@/features/schedule/notification-panel";
@@ -285,12 +286,12 @@ export default async function DashboardPage() {
                         <Icon className="size-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-[var(--foreground)]">
+                        <PrivacySensitive className="font-bold text-[var(--foreground)]">
                           {title}
-                        </p>
-                        <p className="mt-0.5 text-sm text-[var(--muted)]">
+                        </PrivacySensitive>
+                        <PrivacySensitive className="mt-0.5 text-sm text-[var(--muted)]">
                           {detail}
-                        </p>
+                        </PrivacySensitive>
                       </div>
                       <Link
                         href={href as never}
@@ -324,19 +325,25 @@ export default async function DashboardPage() {
                   <div>
                     <dt className="text-sm text-[var(--muted)]">Complete</dt>
                     <dd className="mt-1 text-2xl font-bold text-[var(--navy)]">
-                      {studyStatus.complete}
+                      <PrivacySensitive>
+                        {studyStatus.complete}
+                      </PrivacySensitive>
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm text-[var(--muted)]">In progress</dt>
                     <dd className="mt-1 text-2xl font-bold text-[var(--navy)]">
-                      {studyStatus.inProgress}
+                      <PrivacySensitive>
+                        {studyStatus.inProgress}
+                      </PrivacySensitive>
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm text-[var(--muted)]">Not started</dt>
                     <dd className="mt-1 text-2xl font-bold text-[var(--navy)]">
-                      {studyStatus.notStarted}
+                      <PrivacySensitive>
+                        {studyStatus.notStarted}
+                      </PrivacySensitive>
                     </dd>
                   </div>
                 </dl>
@@ -390,7 +397,7 @@ export default async function DashboardPage() {
                   </p>
                   <div className="mt-3 flex items-end justify-between gap-3">
                     <p className="text-4xl font-bold tracking-tight text-[var(--navy)]">
-                      {value}
+                      <PrivacySensitive>{value}</PrivacySensitive>
                     </p>
                     <Badge tone={tone}>{label}</Badge>
                   </div>

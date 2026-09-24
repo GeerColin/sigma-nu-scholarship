@@ -2,6 +2,7 @@ import { LogOut, Menu } from "lucide-react";
 import { AdminNavigation } from "@/components/admin-navigation";
 import { BrandMark } from "@/components/brand-mark";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { PresentationPrivacyControls } from "@/components/presentation-privacy";
 import { signOut } from "@/features/auth/actions";
 
 type AppShellProps = {
@@ -13,6 +14,7 @@ type AppShellProps = {
     workspace?: "member" | "proctor" | "chair";
     canProctor?: boolean;
     canChair?: boolean;
+    canPrivacy?: boolean;
   };
   chapter: {
     fraternityName: string;
@@ -116,6 +118,9 @@ export function AppShell({
             <span className="hidden text-sm text-[var(--muted)] sm:inline">
               {periodLabel}
             </span>
+            <PresentationPrivacyControls
+              canToggle={viewer.canPrivacy ?? false}
+            />
             <div className="lg:hidden">
               <WorkspaceSwitcher
                 active={viewer.workspace ?? "chair"}

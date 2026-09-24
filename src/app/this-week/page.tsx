@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ChairAppShell } from "@/components/chair-app-shell";
 import { PageHeading } from "@/components/page-heading";
+import {
+  PrivacyActionGuard,
+  PrivacySensitive,
+} from "@/components/presentation-privacy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMemberDirectory } from "@/features/members/queries";
@@ -132,7 +136,7 @@ export default async function ThisWeekPage({
                   </p>
                   <div className="mt-2 flex items-end justify-between">
                     <p className="text-4xl font-bold text-[var(--navy)]">
-                      {value}
+                      <PrivacySensitive>{value}</PrivacySensitive>
                     </p>
                     <Badge tone={tone}>{label}</Badge>
                   </div>
@@ -143,25 +147,27 @@ export default async function ThisWeekPage({
 
           <Card className="mt-5">
             <CardContent>
-              <form className="mb-5 flex flex-wrap gap-2">
-                {statuses.map((status) => (
-                  <button
-                    key={status}
-                    name="status"
-                    value={status}
-                    className={
-                      "min-h-11 rounded-xl px-4 font-semibold " +
-                      (selectedStatus === status
-                        ? "bg-[var(--navy)] text-white"
-                        : "border bg-white text-[var(--navy)]")
-                    }
-                  >
-                    {status === "all"
-                      ? `All (${members.length})`
-                      : `${labels[status as keyof typeof labels]} (${counts[status as keyof typeof counts]})`}
-                  </button>
-                ))}
-              </form>
+              <PrivacyActionGuard label="Turn off presentation privacy to filter weekly academic status.">
+                <form className="mb-5 flex flex-wrap gap-2">
+                  {statuses.map((status) => (
+                    <button
+                      key={status}
+                      name="status"
+                      value={status}
+                      className={
+                        "min-h-11 rounded-xl px-4 font-semibold " +
+                        (selectedStatus === status
+                          ? "bg-[var(--navy)] text-white"
+                          : "border bg-white text-[var(--navy)]")
+                      }
+                    >
+                      {status === "all"
+                        ? `All (${members.length})`
+                        : `${labels[status as keyof typeof labels]} (${counts[status as keyof typeof counts]})`}
+                    </button>
+                  ))}
+                </form>
+              </PrivacyActionGuard>
               <div className="divide-y">
                 {shown.map((member) => (
                   <article
@@ -175,7 +181,7 @@ export default async function ThisWeekPage({
                       >
                         {member.name}
                       </Link>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <PrivacySensitive className="mt-1 text-sm text-[var(--muted)]">
                         {member.submittedAt
                           ? new Intl.DateTimeFormat(undefined, {
                               timeZone: period.semester.timezone,
@@ -183,21 +189,23 @@ export default async function ThisWeekPage({
                               timeStyle: "short",
                             }).format(new Date(member.submittedAt))
                           : "Not submitted"}
-                      </p>
+                      </PrivacySensitive>
                     </div>
-                    <Badge
-                      tone={
-                        member.submissionStatus === "on_time"
-                          ? "success"
-                          : member.submissionStatus === "late"
-                            ? "warning"
-                            : member.submissionStatus === "missing"
-                              ? "danger"
-                              : "neutral"
-                      }
-                    >
-                      {labels[member.submissionStatus]}
-                    </Badge>
+                    <PrivacySensitive>
+                      <Badge
+                        tone={
+                          member.submissionStatus === "on_time"
+                            ? "success"
+                            : member.submissionStatus === "late"
+                              ? "warning"
+                              : member.submissionStatus === "missing"
+                                ? "danger"
+                                : "neutral"
+                        }
+                      >
+                        {labels[member.submissionStatus]}
+                      </Badge>
+                    </PrivacySensitive>
                   </article>
                 ))}
                 {!shown.length && (
