@@ -286,12 +286,12 @@ export default async function DashboardPage() {
                         <Icon className="size-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <PrivacySensitive className="font-bold text-[var(--foreground)]">
-                          {title}
-                        </PrivacySensitive>
-                        <PrivacySensitive className="mt-0.5 text-sm text-[var(--muted)]">
-                          {detail}
-                        </PrivacySensitive>
+                        <p className="font-bold text-[var(--foreground)]">
+                          <PrivacySensitive>{title}</PrivacySensitive>
+                        </p>
+                        <p className="mt-0.5 text-sm text-[var(--muted)]">
+                          <PrivacySensitive>{detail}</PrivacySensitive>
+                        </p>
                       </div>
                       <Link
                         href={href as never}
