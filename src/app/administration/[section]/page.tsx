@@ -14,6 +14,7 @@ import { RosterImportForm } from "@/features/administration/roster-import-form";
 import { RoleManagement } from "@/features/administration/role-management";
 import { ScheduleManager } from "@/features/schedule/schedule-manager";
 import { requireChairContext } from "@/lib/auth/guards";
+import { formatDateTimeInTimeZone } from "@/lib/domain/dates";
 import { createClient } from "@/lib/supabase/server";
 
 const sections = {
@@ -70,6 +71,15 @@ export default async function AdministrationSectionPage({
           .order("created_at", { ascending: false })
           .limit(250)
       : { data: [], error: null };
+  const { data: auditSemester, error: auditSemesterError } =
+    section === "audit"
+      ? await supabase
+          .from("semesters")
+          .select("timezone")
+          .eq("chapter_id", context.chapterId!)
+          .eq("active", true)
+          .maybeSingle()
+      : { data: null, error: null };
   const { data: existingMembers, error: memberError } =
     section === "import"
       ? await supabase
@@ -85,7 +95,7 @@ export default async function AdministrationSectionPage({
           .eq("chapter_id", context.chapterId!)
           .order("start_date", { ascending: false })
       : { data: [], error: null };
-  if (auditError || memberError || semesterError) {
+  if (auditError || auditSemesterError || memberError || semesterError) {
     throw new Error("Could not load administration data.");
   }
   return (
@@ -181,10 +191,11 @@ export default async function AdministrationSectionPage({
                     <div className="sm:text-right">
                       <Badge>{actor?.display_name || "System"}</Badge>
                       <PrivacySensitive className="mt-1 text-xs text-[var(--muted)]">
-                        {new Intl.DateTimeFormat(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(row.created_at))}
+                        Audit event ·{" "}
+                        {formatDateTimeInTimeZone(
+                          row.created_at,
+                          auditSemester?.timezone,
+                        )}
                       </PrivacySensitive>
                     </div>
                   </div>

@@ -19,6 +19,34 @@ export function timeInTimeZone(date: Date, timeZone: string): string {
   }).format(date);
 }
 
+export function formatDateTimeInTimeZone(
+  value: string | null | undefined,
+  timeZone: string | null | undefined,
+): string {
+  if (!value) return "Timestamp unavailable";
+  const normalizedValue = value.trim();
+  if (!/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(normalizedValue)) {
+    return "Invalid timestamp";
+  }
+  const date = new Date(normalizedValue);
+  if (Number.isNaN(date.getTime())) return "Invalid timestamp";
+  if (!timeZone?.trim()) return "Timezone unavailable";
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }).format(date);
+  } catch {
+    return "Invalid timezone";
+  }
+}
+
 function parseDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   if (!year || !month || !day) throw new Error("Date must use YYYY-MM-DD.");
