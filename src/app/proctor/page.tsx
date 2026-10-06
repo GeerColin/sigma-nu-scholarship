@@ -47,7 +47,7 @@ export default async function ProctorPage({
   let sessionsQuery = supabase
     .from("study_sessions")
     .select(
-      "id, session_date, duration_minutes, notes, proctor_member_id, week_id, member:members!study_sessions_member_id_fkey(full_name), proctor:members!study_sessions_proctor_member_id_fkey(full_name), academic_weeks(label, starts_on, ends_on)",
+      "id, member_id, session_date, duration_minutes, notes, proctor_member_id, week_id, member:members!study_sessions_member_id_fkey(full_name), proctor:members!study_sessions_proctor_member_id_fkey(full_name), academic_weeks(label, starts_on, ends_on)",
     )
     .is("voided_at", null)
     .order("created_at", { ascending: false })
@@ -69,6 +69,11 @@ export default async function ProctorPage({
     memberId: member.member_id,
     fullName: member.full_name,
   }));
+  // RLS hides other members' private roster rows from ordinary Proctors.
+  // Resolve those session names from the permitted names-only directory.
+  const memberNames = new Map(
+    members.map((member) => [member.memberId, member.fullName]),
+  );
   const sessions = (sessionRows ?? []).map((session) => {
     const member = session.member as unknown as { full_name: string } | null;
     const proctor = session.proctor as unknown as { full_name: string } | null;
@@ -79,7 +84,10 @@ export default async function ProctorPage({
     };
     return {
       id: session.id,
-      memberName: member?.full_name ?? "Unknown member",
+      memberName:
+        member?.full_name ??
+        memberNames.get(session.member_id) ??
+        "Unknown member",
       proctorName: proctor?.full_name ?? "Unknown proctor",
       date: session.session_date,
       durationMinutes: session.duration_minutes,

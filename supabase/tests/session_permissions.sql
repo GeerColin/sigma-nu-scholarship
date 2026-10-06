@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(9);
+select plan(13);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values
@@ -40,6 +40,12 @@ values
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '91000000-0000-4000-8000-000000000002', true);
+select is((select m.full_name from public.study_sessions s left join public.members m on m.id = s.member_id where s.id = '91000000-0000-4000-8000-000000000031'), null::text,
+  'Proctor session join cannot expose another member private roster row');
+select is((select full_name from public.list_active_members_for_proctor() where member_id = '91000000-0000-4000-8000-000000000014'), 'Session Member',
+  'Proctor names-only directory exposes the recorded active member name');
+select is((select coalesce(m.full_name, d.full_name) from public.study_sessions s left join public.members m on m.id = s.member_id left join public.list_active_members_for_proctor() d on d.member_id = s.member_id where s.id = '91000000-0000-4000-8000-000000000031'), 'Session Member',
+  'Proctor resolves a session member name by ID without private roster access');
 select lives_ok($$select public.record_study_session('91000000-0000-4000-8000-000000000014', '91000000-0000-4000-8000-000000000022', current_date, 45, 'Synthetic session')$$, 'Proctor can record a session for an active member');
 select lives_ok($$select public.edit_own_current_week_session('91000000-0000-4000-8000-000000000031', current_date, 75, 'Current correction')$$, 'Proctor can edit their own current-week session');
 select throws_ok($$select public.edit_own_current_week_session('91000000-0000-4000-8000-000000000030', current_date - 10, 75, 'Old correction')$$, 'P0001', 'The session is locked because its week has ended', 'Proctor cannot edit their own old-week session');
@@ -47,6 +53,8 @@ select throws_ok($$select public.edit_own_current_week_session('91000000-0000-40
 select throws_ok($$select public.correct_study_session('91000000-0000-4000-8000-000000000030', current_date - 10, 90, null, 'Correction')$$, 'P0001', 'Not authorized', 'Proctor cannot use administrative correction');
 
 select set_config('request.jwt.claim.sub', '91000000-0000-4000-8000-000000000001', true);
+select is((select m.full_name from public.study_sessions s left join public.members m on m.id = s.member_id where s.id = '91000000-0000-4000-8000-000000000031'), 'Session Member',
+  'Chair can still resolve the same session name from the private member join');
 select lives_ok($$select public.correct_study_session('91000000-0000-4000-8000-000000000030', current_date - 10, 90, 'Chair correction', 'Verified synthetic correction')$$, 'Chair can correct an older session');
 select is((select count(*)::integer from public.audit_log where action = 'study_session_corrected'), 1, 'administrative correction is audited');
 select lives_ok($$select public.edit_own_current_week_session(public.record_study_session('91000000-0000-4000-8000-000000000014', '91000000-0000-4000-8000-000000000022', current_date, 45), current_date, 60)$$,
