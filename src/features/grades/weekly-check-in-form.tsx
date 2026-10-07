@@ -1,10 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { submitWeeklyCheckIn } from "@/features/grades/actions";
+import {
+  submitWeeklyCheckIn,
+  type WeeklyCheckInActionState,
+} from "@/features/grades/actions";
+import {
+  submissionCommentSchema,
+  submissionCommentWordCount,
+} from "@/lib/domain/submission-comments";
 
 export type CheckInCourse = {
   id: string;
@@ -34,6 +41,22 @@ export function WeeklyCheckInForm({
   const [values, setValues] =
     useState<Record<string, string | number>>(initial);
   const [comment, setComment] = useState(initialComment ?? "");
+  const [state, formAction] = useActionState(submitWeeklyCheckIn, {});
+  const [dismissedCommentState, setDismissedCommentState] =
+    useState<WeeklyCheckInActionState | null>(null);
+  const commentInput = useRef<HTMLTextAreaElement>(null);
+  const formError = useRef<HTMLParagraphElement>(null);
+  const parsedComment = submissionCommentSchema.safeParse(comment);
+  const commentError = parsedComment.success
+    ? state !== dismissedCommentState
+      ? state.commentError
+      : undefined
+    : (parsedComment.error.issues[0]?.message ??
+      "Check your comment and try again.");
+  useEffect(() => {
+    if (state.commentError) commentInput.current?.focus();
+    else if (state.message) formError.current?.focus();
+  }, [state]);
   const entries = courses.map((course) => ({
     courseId: course.id,
     value:
@@ -42,7 +65,16 @@ export function WeeklyCheckInForm({
         : String(values[course.id]),
   }));
   return (
-    <form action={submitWeeklyCheckIn} className="space-y-4">
+    <form
+      action={formAction}
+      onSubmit={(event) => {
+        if (commentError) {
+          event.preventDefault();
+          commentInput.current?.focus();
+        }
+      }}
+      className="space-y-4"
+    >
       <input type="hidden" name="weekId" value={weekId} />
       <input type="hidden" name="entries" value={JSON.stringify(entries)} />
       {courses.map((course) => (
@@ -150,22 +182,53 @@ export function WeeklyCheckInForm({
                   words maximum.
                 </span>
                 <textarea
+                  ref={commentInput}
                   id="submission-comment"
                   name="submissionComment"
                   value={comment}
-                  onChange={(event) => setComment(event.target.value)}
+                  onChange={(event) => {
+                    setComment(event.target.value);
+                    setDismissedCommentState(state);
+                  }}
                   maxLength={1000}
+                  aria-invalid={Boolean(commentError)}
+                  aria-describedby={
+                    commentError
+                      ? "submission-comment-count submission-comment-error"
+                      : "submission-comment-count"
+                  }
                   rows={4}
                   className="mt-3 w-full rounded-xl border px-3 py-3"
                   placeholder="Add a note about this week’s grades (optional)"
                 />
-                <span className="mt-1 block text-right text-xs text-[var(--muted)]">
-                  {comment.trim() ? comment.trim().split(/\s+/).length : 0}/30
-                  words
+                <span
+                  id="submission-comment-count"
+                  className="mt-1 block text-right text-xs text-[var(--muted)]"
+                >
+                  {submissionCommentWordCount(comment)}/30 words
                 </span>
               </label>
+              {commentError && (
+                <p
+                  id="submission-comment-error"
+                  role="alert"
+                  className="mt-2 text-sm font-semibold text-[var(--danger)]"
+                >
+                  {commentError}
+                </p>
+              )}
             </CardContent>
           </Card>
+          {state.message && (
+            <p
+              ref={formError}
+              role="alert"
+              tabIndex={-1}
+              className="rounded-xl bg-[var(--danger-soft)] p-4 font-semibold text-[var(--danger)]"
+            >
+              {state.message}
+            </p>
+          )}
           <SubmitButton
             pendingLabel="Submitting grades…"
             className="w-full sm:w-auto"

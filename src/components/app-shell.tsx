@@ -102,32 +102,25 @@ export function AppShell({
       </aside>
 
       <div className="min-w-0">
-        <header className="flex min-h-17 items-center justify-between border-b bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 lg:hidden">
+        <header className="flex min-h-17 items-center justify-between gap-3 border-b bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 lg:hidden">
             <BrandMark />
-            <p className="font-bold text-[var(--navy)]">Scholarship</p>
+            <p className="truncate font-bold text-[var(--navy)]">Scholarship</p>
           </div>
-          <div className="hidden lg:block">
-            <p className="text-sm font-semibold text-[var(--muted)]">
+          <div className="hidden min-w-0 lg:block">
+            <p className="truncate text-sm font-semibold text-[var(--muted)]">
               {chapter
                 ? `${chapter.fraternityName} · ${chapter.chapterName} · ${chapter.institutionName}`
                 : "Chapter details unavailable"}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-[var(--muted)] sm:inline">
+          <div className="flex shrink-0 items-center gap-3 lg:min-w-0 lg:shrink">
+            <span className="hidden truncate text-sm text-[var(--muted)] lg:inline">
               {periodLabel}
             </span>
             <PresentationPrivacyControls
               canToggle={viewer.canPrivacy ?? false}
             />
-            <div className="lg:hidden">
-              <WorkspaceSwitcher
-                active={viewer.workspace ?? "chair"}
-                canProctor={viewer.canProctor ?? true}
-                canChair={viewer.canChair ?? true}
-              />
-            </div>
             <details className="relative lg:hidden">
               <summary
                 aria-label="Open navigation"
@@ -137,26 +130,41 @@ export function AppShell({
               </summary>
               <nav
                 aria-label="All administration pages"
-                className="absolute top-12 right-0 z-30 grid w-64 gap-1 rounded-xl border bg-white p-2 shadow-xl"
+                className="absolute top-12 right-0 z-30 grid max-h-[calc(100dvh-8rem)] w-72 max-w-[calc(100vw-2rem)] gap-1 overflow-y-auto rounded-xl border bg-white p-2 shadow-xl"
               >
+                <div className="border-b px-3 py-2">
+                  <p className="text-sm font-semibold break-words text-[var(--navy)]">
+                    {viewer.name}
+                  </p>
+                  <p className="text-xs text-[var(--muted)]">{viewer.role}</p>
+                  <p className="mt-1 text-xs break-words text-[var(--muted)]">
+                    {periodLabel}
+                  </p>
+                </div>
+                <WorkspaceSwitcher
+                  active={viewer.workspace ?? "chair"}
+                  canProctor={viewer.canProctor ?? true}
+                  canChair={viewer.canChair ?? true}
+                  layout="inline"
+                />
                 <AdminNavigation variant="menu" />
+                <form action={signOut} className="border-t pt-1">
+                  <button
+                    type="submit"
+                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 font-semibold text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--navy)]"
+                  >
+                    <LogOut aria-hidden="true" className="size-5" />
+                    Sign out
+                  </button>
+                </form>
               </nav>
             </details>
             <div
               aria-label={`${viewer.name}, ${viewer.role}`}
-              className="grid size-9 place-items-center rounded-full bg-[var(--navy)] text-sm font-bold text-white"
+              className="hidden size-9 shrink-0 place-items-center rounded-full bg-[var(--navy)] text-sm font-bold text-white lg:grid"
             >
               {initials(viewer.name)}
             </div>
-            <form action={signOut} className="lg:hidden">
-              <button
-                type="submit"
-                aria-label="Sign out"
-                className="grid size-10 place-items-center rounded-lg text-[var(--muted)] transition hover:bg-[var(--surface-subtle)] hover:text-[var(--navy)]"
-              >
-                <LogOut aria-hidden="true" className="size-5" />
-              </button>
-            </form>
           </div>
         </header>
         <main

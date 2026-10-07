@@ -210,9 +210,15 @@ export default async function ThisWeekPage({
                 ))}
                 {!shown.length && (
                   <p className="py-8 text-center text-[var(--muted)]">
-                    {selectedStatus === "missing"
-                      ? "Everyone has submitted a check-in this week."
-                      : "No active members match this status."}
+                    <PrivacySensitive>
+                      {selectedStatus === "missing"
+                        ? !period.currentWeek.gradeCheckRequired
+                          ? "No grade check is required this week."
+                          : counts.awaiting > 0
+                            ? `No missing check-ins. ${counts.awaiting} ${counts.awaiting === 1 ? "member is" : "members are"} still awaiting submission.`
+                            : "No missing check-ins this week."
+                        : "No active members match this status."}
+                    </PrivacySensitive>
                   </p>
                 )}
               </div>

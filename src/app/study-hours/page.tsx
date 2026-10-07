@@ -396,14 +396,24 @@ export default async function StudyHoursPage({
                                             name="assignmentId"
                                             value={member.assignmentId}
                                           />
-                                          <input
-                                            name="reason"
-                                            required
-                                            minLength={2}
-                                            maxLength={500}
-                                            placeholder="Reason for removal"
-                                            className="min-h-11 w-full rounded-xl border px-3"
-                                          />
+                                          <label
+                                            htmlFor={`remove-override-reason-${member.assignmentId}`}
+                                            className="block"
+                                          >
+                                            <span className="mb-1 block text-sm font-semibold">
+                                              Reason for removal
+                                            </span>
+                                            <input
+                                              id={`remove-override-reason-${member.assignmentId}`}
+                                              aria-label={`Reason for removal for ${member.name}`}
+                                              name="reason"
+                                              required
+                                              minLength={2}
+                                              maxLength={500}
+                                              placeholder="Reason for removal"
+                                              className="min-h-11 w-full rounded-xl border px-3"
+                                            />
+                                          </label>
                                           <label className="flex items-start gap-2 text-sm">
                                             <input
                                               type="checkbox"
@@ -484,25 +494,45 @@ export default async function StudyHoursPage({
                                               {member.proposedHours ?? "—"} hr
                                             </p>
                                           </div>
-                                          <select
-                                            name="decision"
-                                            className="min-h-11 w-full rounded-xl border bg-white px-3"
+                                          <label
+                                            htmlFor={`review-decision-${member.assignmentId}`}
+                                            className="block"
                                           >
-                                            <option value="keep">
-                                              Keep Existing
-                                            </option>
-                                            <option value="update">
-                                              Update Assignment
-                                            </option>
-                                          </select>
-                                          <input
-                                            name="reason"
-                                            required
-                                            minLength={2}
-                                            maxLength={500}
-                                            placeholder="Decision reason"
-                                            className="min-h-11 w-full rounded-xl border px-3"
-                                          />
+                                            <span className="mb-1 block text-sm font-semibold">
+                                              Review decision
+                                            </span>
+                                            <select
+                                              id={`review-decision-${member.assignmentId}`}
+                                              aria-label={`Review decision for ${member.name}`}
+                                              name="decision"
+                                              className="min-h-11 w-full rounded-xl border bg-white px-3"
+                                            >
+                                              <option value="keep">
+                                                Keep Existing
+                                              </option>
+                                              <option value="update">
+                                                Update Assignment
+                                              </option>
+                                            </select>
+                                          </label>
+                                          <label
+                                            htmlFor={`review-reason-${member.assignmentId}`}
+                                            className="block"
+                                          >
+                                            <span className="mb-1 block text-sm font-semibold">
+                                              Decision reason
+                                            </span>
+                                            <input
+                                              id={`review-reason-${member.assignmentId}`}
+                                              aria-label={`Decision reason for ${member.name}`}
+                                              name="reason"
+                                              required
+                                              minLength={2}
+                                              maxLength={500}
+                                              placeholder="Decision reason"
+                                              className="min-h-11 w-full rounded-xl border px-3"
+                                            />
+                                          </label>
                                           <Button
                                             type="submit"
                                             className="w-full"

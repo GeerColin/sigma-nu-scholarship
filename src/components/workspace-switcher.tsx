@@ -31,10 +31,12 @@ export function WorkspaceSwitcher({
   active,
   canProctor,
   canChair,
+  layout = "dropdown",
 }: {
   active: Workspace;
   canProctor: boolean;
   canChair: boolean;
+  layout?: "dropdown" | "inline";
 }) {
   const available: Workspace[] = [
     "member",
@@ -47,6 +49,32 @@ export function WorkspaceSwitcher({
   const current = workspaceDetails[active];
   const CurrentIcon = current.icon;
 
+  const options = (
+    <>
+      <p className="px-3 py-2 text-xs font-bold tracking-[0.12em] text-[var(--muted)] uppercase">
+        Switch workspace
+      </p>
+      {available.map((workspace) => {
+        const item = workspaceDetails[workspace];
+        const Icon = item.icon;
+        const isActive = workspace === active;
+        return (
+          <Link
+            key={workspace}
+            href={item.href as never}
+            aria-current={isActive ? "page" : undefined}
+            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold ${isActive ? "bg-[var(--surface-subtle)] text-[var(--navy)]" : "text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--navy)]"}`}
+          >
+            <Icon aria-hidden="true" className="size-4" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+
+  if (layout === "inline") return <div className="grid gap-1">{options}</div>;
+
   return (
     <details className="relative">
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-3 text-left text-sm font-semibold text-[var(--navy)] shadow-sm marker:hidden [&::-webkit-details-marker]:hidden">
@@ -57,25 +85,7 @@ export function WorkspaceSwitcher({
         <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
       </summary>
       <div className="absolute top-12 right-0 z-40 grid w-64 gap-1 rounded-xl border border-[var(--line)] bg-white p-2 shadow-xl lg:right-auto lg:left-0">
-        <p className="px-3 py-2 text-xs font-bold tracking-[0.12em] text-[var(--muted)] uppercase">
-          Switch workspace
-        </p>
-        {available.map((workspace) => {
-          const item = workspaceDetails[workspace];
-          const Icon = item.icon;
-          const isActive = workspace === active;
-          return (
-            <Link
-              key={workspace}
-              href={item.href as never}
-              aria-current={isActive ? "page" : undefined}
-              className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold ${isActive ? "bg-[var(--surface-subtle)] text-[var(--navy)]" : "text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--navy)]"}`}
-            >
-              <Icon aria-hidden="true" className="size-4" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {options}
       </div>
     </details>
   );
