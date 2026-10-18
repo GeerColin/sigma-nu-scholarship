@@ -86,6 +86,7 @@ it("explains that no check-in is required instead of reporting submission succes
 it("uses singular wording when one member is awaiting submission", async () => {
   fixture.tables.grade_submissions = [
     {
+      chapter_id: "synthetic-chapter",
       member_id: "synthetic-member-1",
       week_id: "synthetic-week",
       is_current: true,

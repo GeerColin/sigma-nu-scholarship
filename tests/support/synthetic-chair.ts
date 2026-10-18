@@ -1,7 +1,10 @@
 type SyntheticRow = Record<string, unknown>;
 export type SyntheticTables = Record<string, SyntheticRow[]>;
 
-export function createSyntheticChairClient(overrides: SyntheticTables = {}) {
+export function createSyntheticChairClient(
+  overrides: SyntheticTables = {},
+  pageCap = 500,
+) {
   const fixtureMembers = [
     {
       id: "synthetic-member-1",
@@ -53,6 +56,7 @@ export function createSyntheticChairClient(overrides: SyntheticTables = {}) {
     academic_weeks: [
       {
         id: "synthetic-week",
+        chapter_id: "synthetic-chapter",
         semester_id: "synthetic-semester",
         sequence_number: 1,
         label: "Synthetic Week",
@@ -79,6 +83,12 @@ export function createSyntheticChairClient(overrides: SyntheticTables = {}) {
     study_hour_rule_sets: [],
     ...overrides,
   };
+  // Older single-chapter fixtures omitted this field; explicit foreign chapter
+  // values remain intact so scoped-report tests exercise actual filtering.
+  tables.academic_weeks = (tables.academic_weeks ?? []).map((week) => ({
+    chapter_id: "synthetic-chapter",
+    ...week,
+  }));
   return {
     auth: {
       getUser: async () => ({
@@ -93,15 +103,59 @@ export function createSyntheticChairClient(overrides: SyntheticTables = {}) {
     },
     from: (table: string) => {
       let rows = tables[table] ?? [];
-      const result = () => ({ data: rows, error: null, status: 200 });
+      let from = 0;
+      let to = Number.POSITIVE_INFINITY;
+      const ordering: Array<{ column: string; ascending: boolean }> = [];
+      const result = () => ({
+        data: [...rows]
+          .sort((a, b) => {
+            for (const { column, ascending } of ordering) {
+              const left = a[column] as string | number;
+              const right = b[column] as string | number;
+              if (left < right) return ascending ? -1 : 1;
+              if (left > right) return ascending ? 1 : -1;
+            }
+            return 0;
+          })
+          .slice(from, Math.min(to + 1, from + pageCap)),
+        error: null,
+        status: 200,
+      });
       const query = {
         select: () => query,
-        order: () => query,
-        limit: () => query,
-        lte: () => query,
-        gte: () => query,
-        is: () => query,
-        in: () => query,
+        order: (column: string, options?: { ascending?: boolean }) => {
+          ordering.push({ column, ascending: options?.ascending ?? true });
+          return query;
+        },
+        limit: (count: number) => {
+          to = count - 1;
+          return query;
+        },
+        range: (start: number, end: number) => {
+          from = start;
+          to = end;
+          return query;
+        },
+        lte: (column: string, value: string | number) => {
+          rows = rows.filter(
+            (row) => (row[column] as string | number) <= value,
+          );
+          return query;
+        },
+        gte: (column: string, value: string | number) => {
+          rows = rows.filter(
+            (row) => (row[column] as string | number) >= value,
+          );
+          return query;
+        },
+        is: (column: string, value: unknown) => {
+          rows = rows.filter((row) => (row[column] ?? null) === value);
+          return query;
+        },
+        in: (column: string, values: unknown[]) => {
+          rows = rows.filter((row) => values.includes(row[column]));
+          return query;
+        },
         eq: (column: string, value: unknown) => {
           rows = rows.filter((row) => row[column] === value);
           return query;
