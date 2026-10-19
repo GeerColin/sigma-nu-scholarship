@@ -12,6 +12,7 @@ import {
   submissionCommentSchema,
   submissionCommentWordCount,
 } from "@/lib/domain/submission-comments";
+import { LETTER_GRADES, letterGradeSchema } from "@/lib/domain/grading";
 
 export type CheckInCourse = {
   id: string;
@@ -34,7 +35,16 @@ export function WeeklyCheckInForm({
   const initial = useMemo(
     () =>
       Object.fromEntries(
-        courses.map((course) => [course.id, course.previousValue ?? ""]),
+        courses.map((course) => {
+          const letter =
+            course.gradingType === "letter"
+              ? letterGradeSchema.safeParse(course.previousValue)
+              : null;
+          return [
+            course.id,
+            letter?.success ? letter.data : (course.previousValue ?? ""),
+          ];
+        }),
       ),
     [courses],
   );
@@ -46,6 +56,16 @@ export function WeeklyCheckInForm({
     useState<WeeklyCheckInActionState | null>(null);
   const commentInput = useRef<HTMLTextAreaElement>(null);
   const formError = useRef<HTMLParagraphElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const node = form.current;
+    if (!node) return;
+    // React resets action forms during commit, when its event handlers are disabled.
+    // Keep the visible draft aligned with controlled state after a returned error.
+    const preserveDraft = (event: Event) => event.preventDefault();
+    node.addEventListener("reset", preserveDraft);
+    return () => node.removeEventListener("reset", preserveDraft);
+  }, []);
   const parsedComment = submissionCommentSchema.safeParse(comment);
   const commentError = parsedComment.success
     ? state !== dismissedCommentState
@@ -66,6 +86,7 @@ export function WeeklyCheckInForm({
   }));
   return (
     <form
+      ref={form}
       action={formAction}
       onSubmit={(event) => {
         if (commentError) {
@@ -133,7 +154,7 @@ export function WeeklyCheckInForm({
                   className="min-h-12 w-full rounded-xl border bg-white px-3"
                 >
                   <option value="">Select</option>
-                  {["A", "B", "C", "D", "F"].map((v) => (
+                  {LETTER_GRADES.map((v) => (
                     <option key={v}>{v}</option>
                   ))}
                 </select>

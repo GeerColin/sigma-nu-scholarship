@@ -2,8 +2,101 @@ import { describe, expect, it } from "vitest";
 import {
   calculateSemesterGPA,
   DEFAULT_PERCENTAGE_SCALE,
+  letterGradeSchema,
+  letterToGrade,
+  percentageScaleSchema,
   percentageToGrade,
 } from "@/lib/domain/grading";
+
+describe("letter-only plus grade scale", () => {
+  it.each([
+    ["A", 4],
+    ["B+", 3.5],
+    ["B", 3],
+    ["C+", 2.5],
+    ["C", 2],
+    ["D+", 1.5],
+    ["D", 1],
+    ["F", 0],
+  ] as const)("maps %s to exactly %s grade points", (letter, gradePoints) => {
+    expect(letterToGrade(letter)).toEqual({ letter, gradePoints });
+  });
+
+  it.each(["A+", "F+", "A-", "B-", "C-", "D-", "F-", "E", "B++", ""])(
+    "rejects unsupported %j",
+    (letter) => {
+      expect(letterGradeSchema.safeParse(letter).success).toBe(false);
+    },
+  );
+
+  it("normalizes supported letter inputs consistently with the authenticated RPC", () => {
+    expect(letterToGrade(" b+ ")).toEqual({ letter: "B+", gradePoints: 3.5 });
+  });
+
+  it("does not let a plus grade enter the five-band percentage schema", () => {
+    expect(
+      percentageScaleSchema.safeParse(
+        DEFAULT_PERCENTAGE_SCALE.map((band) =>
+          band.letter === "B"
+            ? { ...band, letter: "B+", gradePoints: 3.5 }
+            : band,
+        ),
+      ).success,
+    ).toBe(false);
+    expect(percentageToGrade(89.9)).toEqual({ letter: "B", gradePoints: 3 });
+  });
+
+  it.each([
+    ["credit_hours", 3.63],
+    ["equal", 3.75],
+  ] as const)(
+    "uses %s weighting and rounds only the final plus-grade GPA",
+    (mode, expected) => {
+      expect(
+        calculateSemesterGPA(
+          [
+            {
+              courseId: "synthetic-plus",
+              creditHours: 3,
+              gradePoints: letterToGrade("B+").gradePoints,
+              includedInGpa: true,
+              active: true,
+            },
+            {
+              courseId: "synthetic-a",
+              creditHours: 1,
+              gradePoints: letterToGrade("A").gradePoints,
+              includedInGpa: true,
+              active: true,
+            },
+          ],
+          mode,
+        ).estimatedGpa,
+      ).toBe(expected);
+    },
+  );
+
+  it("does not round fractional weighted contributions before division", () => {
+    expect(
+      calculateSemesterGPA([
+        {
+          courseId: "synthetic-plus",
+          creditHours: 1.25,
+          gradePoints: 3.5,
+          includedInGpa: true,
+          active: true,
+        },
+        {
+          courseId: "synthetic-a",
+          creditHours: 2.3,
+          gradePoints: 4,
+          includedInGpa: true,
+          active: true,
+        },
+      ]).estimatedGpa,
+    ).toBe(3.82);
+  });
+});
 
 describe("percentage grading", () => {
   it.each([

@@ -15,6 +15,21 @@ function emptyExportData(): SemesterExportData {
 }
 
 describe("semester export", () => {
+  it("preserves plus letters, point snapshots, and old plain letters in exports", () => {
+    expect(
+      rowsToCsv(
+        [
+          { reported_value: "B+", gpa_points: 3.5, letter_equivalent: "B+" },
+          { reported_value: "C+", gpa_points: 2.5, letter_equivalent: "C+" },
+          { reported_value: "D+", gpa_points: 1.5, letter_equivalent: "D+" },
+          { reported_value: "B", gpa_points: 3, letter_equivalent: "B" },
+        ],
+        ["reported_value", "gpa_points", "letter_equivalent"],
+      ),
+    ).toBe(
+      "reported_value,gpa_points,letter_equivalent\r\nB+,3.5,B+\r\nC+,2.5,C+\r\nD+,1.5,D+\r\nB,3,B",
+    );
+  });
   it.each(["=1+2", "+1+2", "-1+2", "@SUM(1)", "  =1+2", "\t=1+2", "＝1+2"])(
     "exports formula-like user text as a quoted text cell: %j",
     (value) => {

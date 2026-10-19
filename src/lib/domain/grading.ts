@@ -3,13 +3,30 @@ import { z } from "zod";
 export const weightingModeSchema = z.enum(["credit_hours", "equal"]);
 export type WeightingMode = z.infer<typeof weightingModeSchema>;
 
-export const letterGradeSchema = z.enum(["A", "B", "C", "D", "F"]);
+export const LETTER_GRADES = [
+  "A",
+  "B+",
+  "B",
+  "C+",
+  "C",
+  "D+",
+  "D",
+  "F",
+] as const;
+export const letterGradeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .pipe(z.enum(LETTER_GRADES));
 export type LetterGrade = z.infer<typeof letterGradeSchema>;
+
+// Percentage thresholds remain a separate five-band scale, without plus cutoffs.
+const percentageLetterGradeSchema = z.enum(["A", "B", "C", "D", "F"]);
 
 export const percentageScaleSchema = z
   .array(
     z.object({
-      letter: letterGradeSchema,
+      letter: percentageLetterGradeSchema,
       minimum: z.number().min(0).max(100),
       gradePoints: z.number().min(0).max(4),
     }),
@@ -48,11 +65,19 @@ export const DEFAULT_PERCENTAGE_SCALE: PercentageScale = [
 
 export const LETTER_GRADE_POINTS: Record<LetterGrade, number> = {
   A: 4,
+  "B+": 3.5,
   B: 3,
+  "C+": 2.5,
   C: 2,
+  "D+": 1.5,
   D: 1,
   F: 0,
 };
+
+export function letterToGrade(value: unknown) {
+  const letter = letterGradeSchema.parse(value);
+  return { letter, gradePoints: LETTER_GRADE_POINTS[letter] };
+}
 
 export function percentageToGrade(
   percentage: number,

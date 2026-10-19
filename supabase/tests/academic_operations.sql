@@ -1,7 +1,7 @@
 begin;
 set local role postgres;
 set local search_path = public, extensions;
-select plan(21);
+select plan(22);
 
 insert into auth.users(id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values ('20000000-0000-4000-8000-000000000001', 'academic-member@example.test', '{}', '{"full_name":"Academic Member"}', 'authenticated', 'authenticated');
@@ -59,7 +59,8 @@ select lives_ok(
 select is((select count(*)::integer from public.grade_submissions), 2, 'both submission revisions are retained');
 select is((select count(*)::integer from public.grade_submissions where is_current), 1, 'only the latest revision is current');
 set local role postgres;
-select is((select count(*)::integer from public.academic_alerts where chapter_id = '20000000-0000-4000-8000-000000000010'), 1, 'significant percentage decrease creates an academic alert');
+select is((select count(*)::integer from public.academic_alerts where chapter_id = '20000000-0000-4000-8000-000000000010' and alert_type = 'percentage_drop'), 1, 'significant percentage decrease creates an academic alert');
+select is((select count(*)::integer from public.academic_alerts where chapter_id = '20000000-0000-4000-8000-000000000010' and alert_type = 'letter_drop'), 1, 'configured full-letter decrease creates an academic alert');
 
 update public.courses set credit_hours = 4 where id = '20000000-0000-4000-8000-000000000031';
 set local role authenticated;

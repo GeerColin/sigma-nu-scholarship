@@ -84,8 +84,16 @@ export async function ChapterConfiguration() {
                 max="12"
                 required
                 defaultValue={settings?.letter_alert_steps ?? 1}
+                aria-describedby="letter-alert-step-help"
                 className="min-h-11 w-full rounded-xl border px-3"
               />
+              <span
+                id="letter-alert-step-help"
+                className="mt-1 block text-sm text-[var(--muted)]"
+              >
+                One full letter step is 1.0 grade point. A plus-grade change is
+                a half step.
+              </span>
             </label>
             <details className="rounded-xl border lg:col-span-2">
               <summary className="min-h-11 cursor-pointer px-4 py-3 font-semibold text-[var(--navy)]">

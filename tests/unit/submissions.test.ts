@@ -52,6 +52,37 @@ describe("submission timing", () => {
 describe("academic alert detection", () => {
   const thresholds = { percentageDrop: 10, letterSteps: 1 };
 
+  it("keeps full-letter thresholds when plus grades introduce half steps", () => {
+    expect(
+      detectAcademicAlert(
+        { type: "letter", value: "B+" },
+        { type: "letter", value: "B" },
+        thresholds,
+      ),
+    ).toBeNull();
+    expect(
+      detectAcademicAlert(
+        { type: "letter", value: "B+" },
+        { type: "letter", value: "C+" },
+        thresholds,
+      ),
+    ).toEqual({ kind: "letter_drop", decrease: 1 });
+    expect(
+      detectAcademicAlert(
+        { type: "letter", value: "B" },
+        { type: "letter", value: "D+" },
+        thresholds,
+      ),
+    ).toEqual({ kind: "letter_drop", decrease: 1.5 });
+    expect(
+      detectAcademicAlert(
+        { type: "letter", value: "B+" },
+        { type: "letter", value: "D+" },
+        { ...thresholds, letterSteps: 2 },
+      ),
+    ).toEqual({ kind: "letter_drop", decrease: 2 });
+  });
+
   it("detects configured percentage and letter decreases", () => {
     expect(
       detectAcademicAlert(

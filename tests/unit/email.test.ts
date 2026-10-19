@@ -8,6 +8,20 @@ import {
 } from "@/lib/email/templates";
 
 describe("email template rendering", () => {
+  it("preserves literal plus grades in existing email content without adding private-grade variables", () => {
+    expect(
+      renderEmailTemplate(
+        {
+          subject: "Synthetic B+ context",
+          body: "Synthetic C+ and D+ context. {{remainingHours}} hours remaining.",
+        },
+        { remainingHours: 1 },
+      ),
+    ).toEqual({
+      subject: "Synthetic B+ context",
+      body: "Synthetic C+ and D+ context. 1 hour remaining.",
+    });
+  });
   it("renders only allowed variables", () => {
     expect(
       renderEmailTemplate(

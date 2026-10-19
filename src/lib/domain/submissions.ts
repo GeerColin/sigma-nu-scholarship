@@ -1,3 +1,5 @@
+import { LETTER_GRADE_POINTS, type LetterGrade } from "@/lib/domain/grading";
+
 export type SubmissionTiming = "on_time" | "late";
 
 export function submissionStatusLabel(
@@ -48,12 +50,10 @@ export function determineSubmissionStatus(
 
 export type GradeObservation =
   | { type: "percentage"; value: number }
-  | { type: "letter"; value: "A" | "B" | "C" | "D" | "F" }
+  | { type: "letter"; value: LetterGrade }
   | { type: "non_gpa"; value: string };
 
 export type AlertThresholds = { percentageDrop: number; letterSteps: number };
-
-const letterRank = { A: 4, B: 3, C: 2, D: 1, F: 0 } as const;
 
 export function detectAcademicAlert(
   previous: GradeObservation | null,
@@ -68,7 +68,9 @@ export function detectAcademicAlert(
       : null;
   }
   if (previous.type === "letter" && current.type === "letter") {
-    const decrease = letterRank[previous.value] - letterRank[current.value];
+    // Keep configured full-letter steps at 1.0; a plus-grade change is 0.5.
+    const decrease =
+      LETTER_GRADE_POINTS[previous.value] - LETTER_GRADE_POINTS[current.value];
     return decrease >= thresholds.letterSteps
       ? { kind: "letter_drop" as const, decrease }
       : null;

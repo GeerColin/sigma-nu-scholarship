@@ -25,6 +25,10 @@ All tenant-owned rows carry `chapter_id` directly or inherit it through a constr
 - `grade_entries`: immutable course-level snapshots including name, credits, grading type, submitted value, inclusion, and GPA points.
 - `academic_alerts`: configurable grade-change detection result and review state.
 
+Letter Grade courses accept exactly A (4.0), B+ (3.5), B (3.0), C+ (2.5), C (2.0), D+ (1.5), D (1.0), and F (0.0). The authenticated submission RPC validates these values using `letter_grade_points(text)` and snapshots canonical submitted letters, points, credits, and GPA. Percentage courses retain their separate existing five-band default or course-specific scale; Pass/Fail and Custom/Other are unchanged. GPA uses credit-hour or equal-course weighting and rounds only the final result to two decimals. Existing grade snapshots are not reinterpreted.
+
+D+ sets the same D-range study-hour flag as D; F still takes precedence over D, and the configured maximum and frozen-assignment review rules remain authoritative. Letter-drop alert thresholds retain full-letter units (1.0 grade point); a plus/plain half-step is 0.5, not a full configured step. Migration `202610190030_plus_letter_grades.sql` updates functions only and performs no historical backfill or RLS changes.
+
 ## Study hours
 
 - `study_hour_rule_sets` and `study_hour_bands`: immutable versioned policy.

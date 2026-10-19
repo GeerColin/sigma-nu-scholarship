@@ -44,6 +44,222 @@ vi.mock("next/navigation", () => ({
 import { WeeklyCheckInForm } from "@/features/grades/weekly-check-in-form";
 import { submitWeeklyCheckIn } from "@/features/grades/actions";
 
+describe("letter-grade check-in entry and revisions", () => {
+  it("offers exactly the supported grades in descending order, without changing Pass/Fail", () => {
+    render(
+      createElement(WeeklyCheckInForm, {
+        weekId,
+        courses: [
+          {
+            id: courseId,
+            name: "Synthetic Letter",
+            gradingType: "letter",
+            previousValue: null,
+          },
+          {
+            id: "20000000-0000-4000-8000-000000000002",
+            name: "Synthetic Pass Fail",
+            gradingType: "pass_fail",
+            previousValue: "Pass",
+          },
+        ],
+      }),
+    );
+    const letters = screen.getByRole("combobox", {
+      name: "Current standing for Synthetic Letter",
+    }) as HTMLSelectElement;
+    expect([...letters.options].map((option) => option.value)).toEqual([
+      "",
+      "A",
+      "B+",
+      "B",
+      "C+",
+      "C",
+      "D+",
+      "D",
+      "F",
+    ]);
+    const passFail = screen.getByRole("combobox", {
+      name: "Current standing for Synthetic Pass Fail",
+    }) as HTMLSelectElement;
+    expect([...passFail.options].map((option) => option.value)).toEqual([
+      "",
+      "Pass",
+      "Fail",
+    ]);
+  });
+
+  it.each(["B+", "C+", "D+"])(
+    "prepopulates %s from the previous week and the current revision",
+    (grade) => {
+      const props = {
+        weekId,
+        courses: [
+          {
+            id: courseId,
+            name: "Synthetic Letter",
+            gradingType: "letter" as const,
+            previousValue: grade,
+          },
+        ],
+      };
+      render(createElement(WeeklyCheckInForm, props));
+      expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe(
+        grade,
+      );
+      cleanup();
+      render(createElement(WeeklyCheckInForm, { ...props, isRevision: true }));
+      expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe(
+        grade,
+      );
+      expect(screen.getByText(`Current submission: ${grade}`)).toBeTruthy();
+    },
+  );
+
+  it("normalizes a supported direct-RPC plus value when prepopulating", () => {
+    render(
+      createElement(WeeklyCheckInForm, {
+        weekId,
+        isRevision: true,
+        courses: [
+          {
+            id: courseId,
+            name: "Synthetic Letter",
+            gradingType: "letter",
+            previousValue: " b+ ",
+          },
+        ],
+      }),
+    );
+    expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe(
+      "B+",
+    );
+  });
+
+  it("retains an edited plus grade after client comment validation fails", () => {
+    const { container } = render(
+      createElement(WeeklyCheckInForm, {
+        weekId,
+        isRevision: true,
+        courses: [
+          {
+            id: courseId,
+            name: "Synthetic Letter",
+            gradingType: "letter",
+            previousValue: "B+",
+          },
+        ],
+      }),
+    );
+    const letter = screen.getByRole("combobox");
+    fireEvent.change(letter, { target: { value: "D+" } });
+    fireEvent.change(screen.getByLabelText(/Anything you want to explain/), {
+      target: { value: thirtyOneWords },
+    });
+    fireEvent.submit(container.querySelector("form")!);
+    expect(screen.getByRole("alert").textContent).toContain(
+      "30 words or fewer",
+    );
+    expect((letter as HTMLSelectElement).value).toBe("D+");
+    expect(
+      JSON.parse(
+        (container.querySelector('input[name="entries"]') as HTMLInputElement)
+          .value,
+      ),
+    ).toEqual([{ courseId, value: "D+" }]);
+    expect(boundaries.rpc).not.toHaveBeenCalled();
+  });
+
+  it("preserves plus selections on an RPC error and submits the edited plus value on retry", async () => {
+    boundaries.rpc.mockResolvedValue({
+      error: { message: "Synthetic save failure" },
+    });
+    const view = render(
+      createElement(
+        SyntheticRedirectBoundary,
+        null,
+        createElement(WeeklyCheckInForm, {
+          weekId,
+          isRevision: true,
+          initialComment: "Synthetic revision",
+          courses: [
+            {
+              id: courseId,
+              name: "Synthetic Letter",
+              gradingType: "letter",
+              previousValue: "B+",
+            },
+          ],
+        }),
+      ),
+    );
+    const letter = screen.getByRole("combobox");
+    fireEvent.change(letter, { target: { value: "C+" } });
+    expect((letter as HTMLSelectElement).value).toBe("C+");
+    fireEvent.submit(view.container.querySelector("form")!);
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "We couldn’t submit your grades. Nothing was recorded. Try again. If this continues, contact the Scholarship Chair.",
+    );
+    expect((letter as HTMLSelectElement).value).toBe("C+");
+    expect(boundaries.rpc).toHaveBeenLastCalledWith("submit_weekly_checkin", {
+      target_week_id: weekId,
+      submitted_entries: [{ courseId, value: "C+" }],
+      submission_comment: "Synthetic revision",
+    });
+    boundaries.rpc.mockResolvedValue({ error: null });
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    try {
+      fireEvent.change(letter, { target: { value: "D+" } });
+      fireEvent.submit(view.container.querySelector("form")!);
+      await screen.findByText(
+        "Synthetic redirect: /member/check-in?status=submitted",
+      );
+      expect(boundaries.rpc).toHaveBeenLastCalledWith("submit_weekly_checkin", {
+        target_week_id: weekId,
+        submitted_entries: [{ courseId, value: "D+" }],
+        submission_comment: "Synthetic revision",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("exports a clearly synthetic plus-grade revision browser fixture", () => {
+    const { container } = render(
+      createElement(WeeklyCheckInForm, {
+        weekId,
+        isRevision: true,
+        initialComment: "Synthetic exam context",
+        courses: [
+          {
+            id: courseId,
+            name: "Synthetic Letter Course",
+            gradingType: "letter",
+            previousValue: "B+",
+          },
+          {
+            id: "20000000-0000-4000-8000-000000000002",
+            name: "Synthetic Percentage Course",
+            gradingType: "percentage",
+            previousValue: 89.9,
+          },
+        ],
+      }),
+    );
+    if (process.env.UX_FIXTURE_OUTPUT_DIR) {
+      const snapshot = container.cloneNode(true) as HTMLElement;
+      const select = snapshot.querySelector("select")!;
+      for (const option of select.options)
+        option.toggleAttribute("selected", option.value === "B+");
+      snapshot.querySelector("textarea")!.textContent =
+        "Synthetic exam context";
+      writeBrowserFixture("plus-grade-revision.html", snapshot.innerHTML);
+    }
+  });
+});
+
 const thirtyWords =
   "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four twenty-five twenty-six twenty-seven twenty-eight twenty-nine thirty";
 const thirtyOneWords = `${thirtyWords} thirty-one`;

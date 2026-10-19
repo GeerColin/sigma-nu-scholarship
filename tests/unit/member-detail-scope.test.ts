@@ -38,8 +38,12 @@ vi.mock("@/lib/supabase/server", () => ({
               )
               .map((semester) => ({
                 id: semester,
-                estimated_gpa_snapshot: 3,
-                grade_entries: [],
+                estimated_gpa_snapshot: "3.63",
+                grade_entries: ["B+", "C+", "D+", "B"].map((grade) => ({
+                  course_id: `synthetic-${grade}`,
+                  course_name_snapshot: `Synthetic ${grade}`,
+                  reported_value: grade,
+                })),
                 academic_weeks: { label: semester, sequence_number: 1 },
                 is_current: true,
               })),
@@ -83,5 +87,14 @@ describe("member detail query scope", () => {
       "courses.member_id",
       "synthetic-member",
     ]);
+  });
+  it("preserves saved plain/plus letters and the GPA snapshot for Chair/Admin review", async () => {
+    const result = await getMemberDetail("synthetic-member");
+    expect(result?.member.submissions[0]?.estimatedGpa).toBe(3.63);
+    expect(
+      result?.member.submissions[0]?.entries.map(
+        (entry) => entry.reportedValue,
+      ),
+    ).toEqual(["B+", "C+", "D+", "B"]);
   });
 });
